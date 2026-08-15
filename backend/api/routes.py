@@ -20,8 +20,43 @@ from services.excel_storage import (
     append_contact_to_excel,
     get_local_excel_contact_count,
     ensure_excel_file_exists,
+    get_all_contacts_from_excel,
+    update_contact_in_excel,
+    delete_contact_from_excel,
+    generate_vcard_string,
     EXCEL_PATH
 )
+from fastapi.responses import Response
+
+@router.get("/contacts")
+def list_contacts():
+    contacts = get_all_contacts_from_excel()
+    return {"contacts": contacts, "total": len(contacts)}
+
+@router.put("/contacts/{row_id}")
+def update_contact(row_id: int, contact: ContactModel):
+    success, msg = update_contact_in_excel(row_id, contact)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+    return {"success": True, "message": msg}
+
+@router.delete("/contacts/{row_id}")
+def delete_contact(row_id: int):
+    success, msg = delete_contact_from_excel(row_id)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+    return {"success": True, "message": msg}
+
+@router.get("/download-vcard")
+def download_vcard():
+    contacts = get_all_contacts_from_excel()
+    vcard_str = generate_vcard_string(contacts)
+    return Response(
+        content=vcard_str,
+        media_type="text/vcard",
+        headers={"Content-Disposition": "attachment; filename=CardSnap_Contacts.vcf"}
+    )
+
 import logging
 
 logger = logging.getLogger("cardsnap.routes")

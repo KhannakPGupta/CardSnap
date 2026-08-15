@@ -6,6 +6,7 @@ import ProcessingState from './components/ProcessingState';
 import ContactReview from './components/ContactReview';
 import SaveState from './components/SaveState';
 import SuccessState from './components/SuccessState';
+import Dashboard from './components/Dashboard';
 import { fetchConfigStatus, scanCard, saveContact } from './services/api';
 import { AlertCircle, X } from 'lucide-react';
 
@@ -15,6 +16,9 @@ export default function App() {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   
+  // Navigation tab: 'scan' | 'dashboard'
+  const [currentTab, setCurrentTab] = useState('scan');
+
   // App flow steps: 'idle' | 'processing' | 'review' | 'saving' | 'success'
   const [step, setStep] = useState('idle');
   const [scanData, setScanData] = useState(null);
@@ -82,7 +86,7 @@ export default function App() {
       loadStatus();
     } catch (err) {
       console.error('Save contact error:', err);
-      setError(err.message || "We extracted the contact successfully, but couldn't save it to Google Sheets.");
+      setError(err.message || "We extracted the contact successfully, but couldn't save it.");
       setStep('review');
     }
   };
@@ -91,9 +95,21 @@ export default function App() {
     handleClearFile();
   };
 
+  const handleTabChange = (tab) => {
+    setCurrentTab(tab);
+    if (tab === 'scan' && step === 'success') {
+      handleReset();
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white">
-      <Header status={configStatus} onRefresh={loadStatus} />
+      <Header 
+        status={configStatus} 
+        currentTab={currentTab} 
+        onTabChange={handleTabChange} 
+        onRefresh={loadStatus} 
+      />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
         
@@ -117,37 +133,43 @@ export default function App() {
         )}
 
         {/* View switching logic */}
-        {step === 'idle' && (
-          <Scanner
-            onSelectFile={handleSelectFile}
-            onOpenCamera={() => setCameraOpen(true)}
-            selectedFile={selectedFile}
-            previewUrl={previewUrl}
-            onClearFile={handleClearFile}
-            onStartScan={handleStartScan}
-            googleSheetsConfigured={configStatus?.google_sheets_configured}
-          />
-        )}
+        {currentTab === 'dashboard' ? (
+          <Dashboard onScanNew={() => handleTabChange('scan')} />
+        ) : (
+          <>
+            {step === 'idle' && (
+              <Scanner
+                onSelectFile={handleSelectFile}
+                onOpenCamera={() => setCameraOpen(true)}
+                selectedFile={selectedFile}
+                previewUrl={previewUrl}
+                onClearFile={handleClearFile}
+                onStartScan={handleStartScan}
+                googleSheetsConfigured={configStatus?.google_sheets_configured}
+              />
+            )}
 
-        {step === 'processing' && <ProcessingState />}
+            {step === 'processing' && <ProcessingState />}
 
-        {step === 'review' && (
-          <ContactReview
-            scanData={scanData}
-            onSave={handleSaveContact}
-            onCancel={handleReset}
-          />
-        )}
+            {step === 'review' && (
+              <ContactReview
+                scanData={scanData}
+                onSave={handleSaveContact}
+                onCancel={handleReset}
+              />
+            )}
 
-        {step === 'saving' && <SaveState />}
+            {step === 'saving' && <SaveState />}
 
-        {step === 'success' && (
-          <SuccessState
-            savedContact={savedContact}
-            spreadsheetId={configStatus?.spreadsheet_id}
-            totalCount={configStatus?.contact_count}
-            onScanAnother={handleReset}
-          />
+            {step === 'success' && (
+              <SuccessState
+                savedContact={savedContact}
+                spreadsheetId={configStatus?.spreadsheet_id}
+                totalCount={configStatus?.contact_count}
+                onScanAnother={handleReset}
+              />
+            )}
+          </>
         )}
 
         {/* Live Camera Modal */}
@@ -162,8 +184,9 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-        <p>CardSnap Business Card Scanner — Continuous Google Sheets Contact Storage</p>
+        <p>CardSnap Business Card Scanner — Continuous Contact Storage & Analytics</p>
       </footer>
     </div>
   );
 }
+

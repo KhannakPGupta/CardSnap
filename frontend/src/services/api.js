@@ -51,3 +51,28 @@ export async function saveContact(contactData) {
 
   return data;
 }
+
+export async function fetchContacts() {
+  const res = await fetch(`${API_BASE}/contacts`);
+  if (!res.ok) throw new Error('Failed to fetch contacts');
+  return await res.json();
+}
+
+export async function updateContact(rowId, contactData) {
+  const res = await fetch(`${API_BASE}/contacts/${rowId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(contactData),
+  });
+  if (!res.ok) throw new Error('Failed to update contact');
+  return await res.json();
+}
+
+export async function deleteContact(rowId) {
+  const res = await fetch(`${API_BASE}/contacts/${rowId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Failed to delete contact');
+  return await res.json();
+}
+
