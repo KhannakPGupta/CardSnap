@@ -97,36 +97,39 @@ export default function Dashboard({ onScanNew }) {
   return (
     <div className="max-w-6xl mx-auto py-8 px-4 space-y-8 animate-in fade-in duration-300">
       
-      {/* Top Banner & Stats Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Users className="w-6 h-6 text-indigo-400" />
-            Contact Database Hub
+      {/* Top Banner & Workspace Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+        <div className="space-y-1 z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-1">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" /> Active Workspace
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
+            My Contacts Directory
           </h1>
-          <p className="text-sm text-slate-400">
-            Manage, search, edit, and export your business card contacts.
+          <p className="text-sm text-slate-400 max-w-lg">
+            Your central business network. Search, edit, export, or scan new business cards in seconds.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 z-10">
           <button
             onClick={onScanNew}
-            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition transform active:scale-95"
+            className="px-5 py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white text-sm font-semibold rounded-2xl flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition transform active:scale-95 group"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 text-indigo-200 group-hover:rotate-90 transition transform duration-200" />
             <span>Scan New Card</span>
           </button>
           
           <button
             onClick={loadContacts}
             title="Refresh Contacts"
-            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700"
+            className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl transition border border-slate-700"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
+
 
       {/* Analytics Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
