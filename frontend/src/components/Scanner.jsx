@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Camera, FileImage, Sparkles } from 'lucide-react';
+import { Upload, Camera, FileImage, Sparkles, Cpu, ShieldCheck } from 'lucide-react';
 import ImagePreview from './ImagePreview';
 
 export default function Scanner({ onSelectFile, onOpenCamera, selectedFile, previewUrl, onClearFile, onStartScan, googleSheetsConfigured }) {
@@ -47,24 +47,27 @@ export default function Scanner({ onSelectFile, onOpenCamera, selectedFile, prev
   };
 
   return (
-    <div className="max-w-3xl mx-auto text-center py-8 px-4">
-      {/* Hero Headline */}
-      <div className="mb-8 space-y-3">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold tracking-wide uppercase">
-          <Sparkles className="w-3.5 h-3.5" /> Instant Contact Extractor
+    <div className="max-w-3xl mx-auto text-center py-4 px-2">
+      {/* Sci-Fi Hero Header */}
+      <div className="mb-6 space-y-3">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-semibold tracking-wider uppercase">
+          <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-spin" style={{ animationDuration: '4s' }} /> 
+          <span>NEURAL OPTICAL SCANNER v2.5</span>
         </div>
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
-          Turn business cards into <br className="hidden sm:inline" />
-          <span className="bg-gradient-to-r from-indigo-400 via-sky-400 to-indigo-300 bg-clip-text text-transparent">
-            organized contacts.
+        
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-white font-heading tracking-tight leading-tight">
+          Ingest Card Visuals into <br className="hidden sm:inline" />
+          <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-purple-400 bg-clip-text text-transparent text-glow-cyan">
+            Structured Quantum Data.
           </span>
         </h1>
-        <p className="text-base sm:text-lg text-slate-400 max-w-xl mx-auto">
-          Scan physical business cards instantly and automatically append structured rows to your spreadsheet.
+        
+        <p className="text-sm text-slate-400 max-w-lg mx-auto">
+          Multi-layer OCR text recognition extracts name, phone, email, organization, address, and online links automatically.
         </p>
       </div>
 
-      {/* Selected Image Preview Mode or Dropzone */}
+      {/* Selected Image Preview Mode or Cyber Dropzone */}
 
       {selectedFile ? (
         <ImagePreview
@@ -75,19 +78,24 @@ export default function Scanner({ onSelectFile, onOpenCamera, selectedFile, prev
         />
       ) : (
         <div className="space-y-6">
-          {/* Main Upload Dropzone */}
+          {/* Main Upload Cyber Viewfinder Dropzone */}
           <div
             onDragEnter={handleDrag}
             onDragOver={handleDrag}
             onDragLeave={handleDrag}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`glow-box cursor-pointer border-2 border-dashed rounded-3xl p-10 sm:p-14 transition-all duration-300 bg-slate-900/60 backdrop-blur-xl group relative overflow-hidden ${
+            className={`cursor-pointer rounded-3xl p-10 sm:p-12 transition-all duration-300 bg-slate-950/80 backdrop-blur-2xl group relative overflow-hidden hud-corner border ${
               dragActive
-                ? 'border-indigo-400 bg-indigo-950/30 scale-[1.01]'
-                : 'border-slate-800 hover:border-slate-700 hover:bg-slate-900/80'
+                ? 'border-cyan-400 bg-cyan-950/20 scale-[1.01] shadow-2xl shadow-cyan-500/30'
+                : 'border-slate-800 hover:border-cyan-500/50 hover:bg-slate-900/90'
             }`}
           >
+            {/* Animated Laser Scanning Beam on Hover */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition duration-500">
+              <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent absolute animate-laser"></div>
+            </div>
+
             <input
               ref={fileInputRef}
               type="file"
@@ -96,21 +104,28 @@ export default function Scanner({ onSelectFile, onOpenCamera, selectedFile, prev
               className="hidden"
             />
 
-            <div className="flex flex-col items-center space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 group-hover:bg-indigo-600/20 transition-transform">
-                <Upload className="w-8 h-8" />
+            <div className="flex flex-col items-center space-y-4 relative z-10">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-purple-600/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition transform shadow-lg shadow-cyan-500/10">
+                <Upload className="w-8 h-8 text-cyan-400" />
               </div>
               <div className="space-y-1">
-                <p className="text-lg font-semibold text-white">
-                  Scan a business card
+                <p className="text-lg font-bold text-white font-heading">
+                  Drop Business Card Image Here
                 </p>
-                <p className="text-sm text-slate-400">
-                  Drop an image here or <span className="text-indigo-400 hover:underline font-medium">browse file</span>
+                <p className="text-xs text-slate-400">
+                  Or click to browse from local system matrix (<span className="text-cyan-400 font-mono font-semibold">JPG, PNG, WEBP</span>)
                 </p>
               </div>
-              <p className="text-xs text-slate-500">
-                Supports JPG, JPEG, PNG, WEBP (Max 10 MB)
-              </p>
+
+              <div className="flex items-center gap-4 text-[11px] font-mono text-slate-500 pt-2">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> MAX 10MB
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1.5">
+                  <Cpu className="w-3.5 h-3.5 text-cyan-400" /> NEURAL OCR READY
+                </span>
+              </div>
             </div>
           </div>
 
@@ -118,18 +133,18 @@ export default function Scanner({ onSelectFile, onOpenCamera, selectedFile, prev
           <div className="flex flex-wrap items-center justify-center gap-4">
             <button
               onClick={onOpenCamera}
-              className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl border border-slate-700 flex items-center gap-2.5 shadow-lg transition transform hover:-translate-y-0.5"
+              className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-cyan-300 font-bold text-xs rounded-xl border border-cyan-500/30 flex items-center gap-2.5 shadow-lg transition transform hover:-translate-y-0.5 font-heading uppercase tracking-wider cursor-pointer"
             >
-              <Camera className="w-5 h-5 text-indigo-400" />
-              <span>Use Camera</span>
+              <Camera className="w-4 h-4 text-cyan-400" />
+              <span>Camera Viewfinder</span>
             </button>
 
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl flex items-center gap-2.5 shadow-lg shadow-indigo-600/25 transition transform hover:-translate-y-0.5"
+              className="px-6 py-3 neon-btn-primary text-black font-extrabold text-xs rounded-xl flex items-center gap-2.5 shadow-xl transition transform hover:-translate-y-0.5 font-heading uppercase tracking-wider cursor-pointer"
             >
-              <FileImage className="w-5 h-5" />
-              <span>Upload Business Card</span>
+              <FileImage className="w-4 h-4 text-black" />
+              <span>Browse Image File</span>
             </button>
           </div>
         </div>

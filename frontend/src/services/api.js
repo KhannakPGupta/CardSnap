@@ -11,7 +11,8 @@ export async function fetchConfigStatus() {
       google_sheets_configured: false,
       spreadsheet_id: null,
       contact_count: null,
-      message: 'Backend unavailable or network error.'
+      message: 'Backend unavailable or network error.',
+      offline: true
     };
   }
 }
@@ -25,7 +26,15 @@ export async function scanCard(file) {
     body: formData,
   });
 
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch (err) {
+    if (!res.ok) {
+      throw new Error(`Server error (${res.status}): Failed to process business card.`);
+    }
+    throw new Error('Failed to parse response from server.');
+  }
 
   if (!res.ok) {
     throw new Error(data.detail || 'Failed to process business card.');
@@ -43,10 +52,18 @@ export async function saveContact(contactData) {
     body: JSON.stringify(contactData),
   });
 
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch (err) {
+    if (!res.ok) {
+      throw new Error(`Server error (${res.status}): Failed to save contact.`);
+    }
+    throw new Error('Failed to parse response from server.');
+  }
 
   if (!res.ok) {
-    throw new Error(data.detail || 'Failed to save contact to Google Sheet.');
+    throw new Error(data.detail || 'Failed to save contact.');
   }
 
   return data;
@@ -54,8 +71,12 @@ export async function saveContact(contactData) {
 
 export async function fetchContacts() {
   const res = await fetch(`${API_BASE}/contacts`);
-  if (!res.ok) throw new Error('Failed to fetch contacts');
-  return await res.json();
+  if (!res.ok) throw new Error(`Server error (${res.status}): Failed to fetch contacts`);
+  try {
+    return await res.json();
+  } catch (err) {
+    throw new Error('Failed to parse contacts response.');
+  }
 }
 
 export async function updateContact(rowId, contactData) {
@@ -64,15 +85,23 @@ export async function updateContact(rowId, contactData) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(contactData),
   });
-  if (!res.ok) throw new Error('Failed to update contact');
-  return await res.json();
+  if (!res.ok) throw new Error(`Server error (${res.status}): Failed to update contact`);
+  try {
+    return await res.json();
+  } catch (err) {
+    throw new Error('Failed to parse update response.');
+  }
 }
 
 export async function deleteContact(rowId) {
   const res = await fetch(`${API_BASE}/contacts/${rowId}`, {
     method: 'DELETE',
   });
-  if (!res.ok) throw new Error('Failed to delete contact');
-  return await res.json();
+  if (!res.ok) throw new Error(`Server error (${res.status}): Failed to delete contact`);
+  try {
+    return await res.json();
+  } catch (err) {
+    throw new Error('Failed to parse delete response.');
+  }
 }
 

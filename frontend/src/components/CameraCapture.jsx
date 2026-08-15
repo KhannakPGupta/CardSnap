@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Camera, RefreshCw, CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { Camera, RefreshCw, CheckCircle2, AlertTriangle, X, Sparkles } from 'lucide-react';
 
 export default function CameraCapture({ onCapture, onClose }) {
   const videoRef = useRef(null);
@@ -34,7 +34,7 @@ export default function CameraCapture({ onCapture, onClose }) {
       setCameraActive(true);
     } catch (err) {
       console.error('Camera access error:', err);
-      setError('Could not access camera. Please check permissions or upload an image instead.');
+      setError('Could not access camera device. Check browser permissions or upload an image file instead.');
       setCameraActive(false);
     }
   };
@@ -81,20 +81,20 @@ export default function CameraCapture({ onCapture, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl relative flex flex-col">
+      <div className="cyber-panel-glow rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl relative flex flex-col hud-corner">
         
         {/* Header bar */}
         <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-white font-medium">
-            <Camera className="w-5 h-5 text-indigo-400" />
-            <span>Camera Card Scanner</span>
+          <div className="flex items-center gap-2 text-white font-heading">
+            <Camera className="w-5 h-5 text-cyan-400" />
+            <span className="font-bold text-base">Optic Viewfinder Core</span>
           </div>
           <button
             onClick={() => {
               stopCamera();
               onClose();
             }}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -106,10 +106,10 @@ export default function CameraCapture({ onCapture, onClose }) {
           {error ? (
             <div className="p-8 text-center max-w-md">
               <AlertTriangle className="w-12 h-12 text-amber-400 mx-auto mb-4" />
-              <p className="text-slate-300 mb-6">{error}</p>
+              <p className="text-slate-300 mb-6 text-sm">{error}</p>
               <button
                 onClick={onClose}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition"
+                className="px-5 py-2.5 neon-btn-primary text-black font-extrabold text-xs rounded-xl font-heading"
               >
                 Use File Upload Instead
               </button>
@@ -120,7 +120,7 @@ export default function CameraCapture({ onCapture, onClose }) {
               <img
                 src={capturedImage.previewUrl}
                 alt="Captured business card"
-                className="max-h-[380px] w-auto rounded-lg shadow-lg border border-slate-700 object-contain"
+                className="max-h-[380px] w-auto rounded-xl shadow-2xl border border-cyan-500/40 object-contain"
               />
             </div>
           ) : (
@@ -135,36 +135,32 @@ export default function CameraCapture({ onCapture, onClose }) {
               />
               <canvas ref={canvasRef} className="hidden" />
 
-              {/* Card Framing Guide Overlay */}
+              {/* Sci-Fi Targeting Frame Guide */}
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-6">
-                <div className="w-full max-w-sm aspect-[1.75/1] border-2 border-dashed border-indigo-400/80 rounded-xl relative shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] flex items-center justify-center">
-                  <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-indigo-400"></div>
-                  <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-indigo-400"></div>
-                  <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-indigo-400"></div>
-                  <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-indigo-400"></div>
+                <div className="w-full max-w-sm aspect-[1.75/1] border-2 border-cyan-400 rounded-2xl relative shadow-[0_0_0_9999px_rgba(5,7,13,0.7)] flex items-center justify-center">
+                  <div className="absolute top-2 left-2 w-5 h-5 border-t-4 border-l-4 border-cyan-400"></div>
+                  <div className="absolute top-2 right-2 w-5 h-5 border-t-4 border-r-4 border-cyan-400"></div>
+                  <div className="absolute bottom-2 left-2 w-5 h-5 border-b-4 border-l-4 border-cyan-400"></div>
+                  <div className="absolute bottom-2 right-2 w-5 h-5 border-b-4 border-r-4 border-cyan-400"></div>
                   
-                  <span className="text-xs uppercase tracking-wider font-semibold text-white/90 bg-slate-950/80 px-3 py-1 rounded-full border border-indigo-500/30">
-                    PLACE CARD HERE
+                  <span className="text-[11px] font-mono font-bold tracking-widest text-cyan-300 bg-slate-950/90 px-4 py-1.5 rounded-full border border-cyan-500/40 flex items-center gap-1.5 uppercase">
+                    <Sparkles className="w-3 h-3 text-cyan-400 animate-spin" /> ALIGN CARD INSIDE RETICLE
                   </span>
                 </div>
-              </div>
-
-              <div className="absolute bottom-4 text-xs font-medium text-slate-300 bg-slate-950/70 px-4 py-1.5 rounded-full backdrop-blur-sm border border-slate-800">
-                Position the business card inside the frame.
               </div>
             </div>
           )}
         </div>
 
         {/* Action Controls */}
-        <div className="p-4 border-t border-slate-800 bg-slate-900 flex items-center justify-center gap-4">
+        <div className="p-4 border-t border-slate-800 bg-slate-950 flex items-center justify-center gap-4">
           {!capturedImage && cameraActive && (
             <button
               onClick={handleCapture}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition transform active:scale-95"
+              className="px-7 py-3 neon-btn-primary text-black font-extrabold text-xs rounded-xl flex items-center gap-2 font-heading uppercase tracking-wider cursor-pointer"
             >
-              <Camera className="w-5 h-5" />
-              <span>Capture Photo</span>
+              <Camera className="w-4 h-4 text-black" />
+              <span>Capture Frame</span>
             </button>
           )}
 
@@ -172,7 +168,7 @@ export default function CameraCapture({ onCapture, onClose }) {
             <>
               <button
                 onClick={handleRetake}
-                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-xl flex items-center gap-2 border border-slate-700 transition"
+                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 font-bold text-xs rounded-xl flex items-center gap-2 border border-slate-800 transition"
               >
                 <RefreshCw className="w-4 h-4" />
                 <span>Retake</span>
@@ -180,10 +176,10 @@ export default function CameraCapture({ onCapture, onClose }) {
               
               <button
                 onClick={handleConfirmScan}
-                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition transform active:scale-95"
+                className="px-7 py-2.5 neon-btn-primary text-black font-extrabold text-xs rounded-xl flex items-center gap-2 font-heading uppercase tracking-wider cursor-pointer"
               >
-                <CheckCircle2 className="w-5 h-5" />
-                <span>Scan Card</span>
+                <CheckCircle2 className="w-4 h-4 text-black" />
+                <span>Execute Scan</span>
               </button>
             </>
           )}

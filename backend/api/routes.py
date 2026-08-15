@@ -28,7 +28,10 @@ from services.excel_storage import (
 )
 from fastapi.responses import Response
 
+router = APIRouter()
+
 @router.get("/contacts")
+
 def list_contacts():
     contacts = get_all_contacts_from_excel()
     return {"contacts": contacts, "total": len(contacts)}
@@ -60,7 +63,6 @@ def download_vcard():
 import logging
 
 logger = logging.getLogger("cardsnap.routes")
-router = APIRouter(prefix="/api")
 
 @router.get("/health")
 def health_check():

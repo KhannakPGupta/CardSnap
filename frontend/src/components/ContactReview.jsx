@@ -1,22 +1,8 @@
 import React, { useState } from 'react';
 import {
-  User,
-  Briefcase,
-  Building,
-  Phone,
-  Mail,
-  Globe,
-  Link,
-  MapPin,
-  FileText,
-  AlertTriangle,
-  Save,
-  RotateCcw,
-  ChevronDown,
-  ChevronUp,
-  Terminal
+  User, Briefcase, Building, Phone, Mail, Globe, Link, MapPin, FileText,
+  AlertTriangle, Save, RotateCcw, ChevronDown, ChevronUp, Terminal, Sparkles, CheckCircle2
 } from 'lucide-react';
-
 
 export default function ContactReview({ scanData, onSave, onCancel }) {
   const [formData, setFormData] = useState({
@@ -56,60 +42,66 @@ export default function ContactReview({ scanData, onSave, onCancel }) {
   const fieldsConfig = [
     { key: 'name', label: 'Full Name', icon: User, placeholder: 'e.g. Rahul Sharma' },
     { key: 'job_title', label: 'Job Title / Designation', icon: Briefcase, placeholder: 'e.g. Founder & CEO' },
-    { key: 'company', label: 'Company', icon: Building, placeholder: 'e.g. ABC Technologies' },
-    { key: 'phone', label: 'Phone Number', icon: Phone, placeholder: 'e.g. +91 98765 43210' },
-    { key: 'email', label: 'Email Address', icon: Mail, placeholder: 'e.g. rahul@abc.com' },
-    { key: 'website', label: 'Website', icon: Globe, placeholder: 'e.g. www.abctech.com' },
-    { key: 'linkedin', label: 'LinkedIn URL', icon: Link, placeholder: 'e.g. linkedin.com/in/rahulsharma' },
-    { key: 'address', label: 'Address', icon: MapPin, placeholder: 'e.g. Chennai, Tamil Nadu' },
-    { key: 'notes', label: 'Notes (Optional)', icon: FileText, placeholder: 'Add manual notes or follow-up details...' },
+    { key: 'company', label: 'Organization', icon: Building, placeholder: 'e.g. ABC Technologies' },
+    { key: 'phone', label: 'Phone Contact', icon: Phone, placeholder: 'e.g. +91 98765 43210' },
+    { key: 'email', label: 'Email Vector', icon: Mail, placeholder: 'e.g. rahul@abc.com' },
+    { key: 'website', label: 'Web Portal', icon: Globe, placeholder: 'e.g. www.abctech.com' },
+    { key: 'linkedin', label: 'LinkedIn Profile', icon: Link, placeholder: 'e.g. linkedin.com/in/rahulsharma' },
+    { key: 'address', label: 'Location Matrix', icon: MapPin, placeholder: 'e.g. Chennai, Tamil Nadu' },
+    { key: 'notes', label: 'Custom Intel Notes', icon: FileText, placeholder: 'Add manual notes or follow-up details...' },
   ];
 
   return (
-    <div className="max-w-2xl mx-auto py-4 px-4">
-      <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+    <div className="max-w-2xl mx-auto py-2 px-2">
+      <form onSubmit={handleSubmit} className="cyber-panel-glow rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 hud-corner">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-5">
           <div>
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              Contact Found
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold uppercase mb-1">
+              <Sparkles className="w-3 h-3 text-cyan-400 animate-pulse" /> OCR PARSE VERIFIED
+            </div>
+            <h2 className="text-2xl font-extrabold text-white font-heading flex items-center gap-2">
+              Review Extracted Intel
             </h2>
-            <p className="text-sm text-slate-400 mt-1">
-              Review and edit the information before saving to Google Sheets.
+            <p className="text-xs text-slate-400 mt-0.5">
+              Confirm parameters before committing to Database Matrix & Excel Ledger.
             </p>
           </div>
           <button
             type="button"
             onClick={onCancel}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
-            title="Scan another image"
+            className="p-2.5 rounded-xl text-slate-400 hover:text-cyan-400 hover:bg-slate-900 transition border border-transparent hover:border-cyan-500/30"
+            title="Scan another card"
           >
-            <RotateCcw className="w-5 h-5" />
+            <RotateCcw className="w-4 h-4" />
           </button>
         </div>
 
         {/* Fields list */}
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {fieldsConfig.map(({ key, label, icon: Icon, placeholder }) => {
             const val = formData[key];
             const conf = confidences[key];
             const isLowConfidence = val && conf !== undefined && conf < 0.85;
 
             return (
-              <div key={key} className="space-y-1.5 text-left">
+              <div key={key} className={`space-y-1.5 text-left ${key === 'notes' || key === 'address' ? 'sm:col-span-2' : ''}`}>
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                    <Icon className="w-3.5 h-3.5 text-indigo-400" />
+                  <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                    <Icon className="w-3.5 h-3.5 text-cyan-400" />
                     {label}
                   </label>
                   
-                  {isLowConfidence && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
-                      <AlertTriangle className="w-3 h-3" />
-                      Verify
+                  {isLowConfidence ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-md">
+                      <AlertTriangle className="w-3 h-3" /> VERIFY
                     </span>
-                  )}
+                  ) : val ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" /> CONFIDENT
+                    </span>
+                  ) : null}
                 </div>
 
                 <div className="relative">
@@ -118,10 +110,10 @@ export default function ContactReview({ scanData, onSave, onCancel }) {
                     value={val}
                     onChange={(e) => handleChange(key, e.target.value)}
                     placeholder={placeholder}
-                    className={`w-full bg-slate-950/80 border text-slate-100 placeholder-slate-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition ${
+                    className={`w-full bg-slate-950/90 border text-slate-100 placeholder-slate-600 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none transition ${
                       isLowConfidence
-                        ? 'border-amber-500/40 focus:border-amber-400 focus:ring-1 focus:ring-amber-400'
-                        : 'border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
+                        ? 'border-amber-500/50 focus:border-amber-400 focus:ring-1 focus:ring-amber-400'
+                        : 'border-slate-800 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400'
                     }`}
                   />
                 </div>
@@ -136,10 +128,10 @@ export default function ContactReview({ scanData, onSave, onCancel }) {
             <button
               type="button"
               onClick={() => setShowRawOcr(!showRawOcr)}
-              className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1.5 transition py-1"
+              className="text-xs text-slate-400 hover:text-cyan-300 flex items-center gap-1.5 transition py-1 font-mono"
             >
-              <Terminal className="w-3.5 h-3.5 text-indigo-400" />
-              <span>{showRawOcr ? 'Hide raw OCR detected text' : 'Show raw OCR detected text'}</span>
+              <Terminal className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{showRawOcr ? 'Hide raw OCR telemetry tokens' : 'Show raw OCR telemetry tokens'}</span>
               {showRawOcr ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </button>
 
@@ -148,7 +140,7 @@ export default function ContactReview({ scanData, onSave, onCancel }) {
                 {scanData.raw_ocr.map((item, idx) => (
                   <div key={idx} className="flex justify-between border-b border-slate-900 pb-1">
                     <span className="text-slate-200">{item.text}</span>
-                    <span className="text-slate-500 text-[10px]">
+                    <span className="text-cyan-400 text-[10px]">
                       {(item.confidence * 100).toFixed(0)}%
                     </span>
                   </div>
@@ -159,21 +151,21 @@ export default function ContactReview({ scanData, onSave, onCancel }) {
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-between border-t border-slate-800 pt-6">
+        <div className="flex items-center justify-between border-t border-slate-800 pt-5">
           <button
             type="button"
             onClick={onCancel}
-            className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl text-sm transition"
+            className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs rounded-xl transition"
           >
             Cancel
           </button>
 
           <button
             type="submit"
-            className="px-7 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition transform active:scale-95"
+            className="px-7 py-3 neon-btn-primary text-black font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-xl font-heading uppercase tracking-wider cursor-pointer"
           >
-            <Save className="w-4 h-4" />
-            <span>Save Contact</span>
+            <Save className="w-4 h-4 text-black" />
+            <span>Commit Contact Record</span>
           </button>
         </div>
 

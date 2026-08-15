@@ -69,8 +69,10 @@ def append_contact_to_excel(contact: ContactModel) -> Tuple[bool, str, int]:
         ws.append(row_data)
         new_row_num = ws.max_row
         wb.save(filepath)
-        return True, "Contact saved to local Excel sheet.", new_row_num
+        return True, "Contact saved successfully", new_row_num
     except Exception as e:
+        return False, f"Excel save error: {str(e)}", 0
+
 def get_local_excel_contact_count() -> int:
     """Return total number of saved contacts in local Excel file."""
     try:
