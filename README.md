@@ -1,37 +1,47 @@
-# CardSnap AI — Futuristic Business Card Scanning & Contact Intelligence
+# 🎴 CardSnap AI — Futuristic Business Card Scanner & Contact Intelligence
 
-> **Automating data extraction to free business owners from the tedious grind of manual entry.**
+<p align="center">
+  <img src="https://img.shields.io/badge/OCR-PaddleOCR%20%7C%20EasyOCR-blueviolet?style=for-the-badge&logo=python" alt="OCR Engines" />
+  <img src="https://img.shields.io/badge/Frontend-React%2019%20%7C%20Vite-cyan?style=for-the-badge&logo=react" alt="Frontend" />
+  <img src="https://img.shields.io/badge/Backend-FastAPI%20%7C%20Uvicorn-green?style=for-the-badge&logo=fastapi" alt="Backend" />
+  <img src="https://img.shields.io/badge/Storage-Excel%20%7C%20Google%20Sheets-emerald?style=for-the-badge&logo=microsoftexcel" alt="Storage" />
+</p>
 
-CardSnap is a sleek, modern, full-stack web application designed to scan physical business cards, extract structured contact information, and store it seamlessly in Excel and Google Sheets. 
+> **Empowering business owners by turning stacks of physical business cards into clean, organized contact databases instantly.**
 
 ---
 
 ## 👨‍💼 The Origin Story: Automating for Prafhul Gupta
 
-Like many traditional businessmen, my father, **Prafhul Gupta**, spent countless hours manually transcribing client details, phone numbers, and emails from stacks of physical business cards into massive Excel spreadsheets. It was a repetitive, error-prone, and exhausting process. 
-
-CardSnap was built to solve this exact problem. By automating OCR text extraction, applying fuzzy duplicate resolution, and writing directly to local Excel ledgers with 1-click downloads, CardSnap turns a 5-minute typing task into a 5-second scan. It is built to make networking and lead management effortless for business owners.
+> [!NOTE]
+> **CardSnap was inspired by a real-world business need.**
+> My father, **Prafhul Gupta**, is a businessman who frequently returns from conferences with stacks of physical business cards. Historically, he had to sit down and manually type every name, phone number, email, and address into Excel spreadsheets—a tedious, slow, and exhausting chore.
+> 
+> This application was built to automate that entire process. By replacing hours of manual entry with a 5-second scanner, CardSnap handles OCR, cleans formatting, resolves duplicates, and updates Excel sheets automatically, giving business owners their time back.
 
 ---
 
-## 🌟 Key Features & Intelligence Suite
+## 🚀 Key Features
 
-*   **⚡ Instant AI Scanner & OCR:** Capture live images from your browser camera or upload image files (JPG, PNG, WEBP). Applies CLAHE contrast enhancement and noise reduction before extracting text using OCR.
-*   **🗺️ Geographic Map Matrix:** Pinpoint contact locations on an interactive 3D map workspace. Integrates fallback geocoding to resolve complex business card addresses to physical lat/long coordinates.
-*   **🔮 Smart Merge & Duplicate Radar:** Scans your database pairwise. Matches contacts based on exact email, exact phone, or fuzzy name similarity ratios (using SequenceMatcher thresholds >= 0.85). Displays a merge conflict UI where you can choose which details to save.
-*   **📁 Ledger Archives & Switcher:** Manage multiple sheet profiles (e.g., *Client Ledger*, *Event Contacts*, *Vendor List*). Create, rename, delete, and hot-swap between multiple active `.xlsx` ledger sheets dynamically.
-*   **💾 Multi-Channel Storage:** Appends saved entries to your active local Excel spreadsheet with optional real-time cloud backup to Google Sheets.
+*   **⚡ Holographic Scanner HUD:** Upload card images or capture them live using your browser's webcam. Features an interactive cyberpunk review overlay.
+*   **🔮 Duplicate Radar & Smart Merge:** Scans database records pairwise. Matches duplicates by phone, email, or fuzzy name similarity (using sequence matching ratios >= 0.85) and guides you through conflict resolution.
+*   **🗺️ Geo-Matrix Map:** Renders contacts on an interactive global 3D map. Features a fallback geocoding engine to automatically locate complex addresses.
+*   **📁 Ledger Archives & Switcher:** Manage separate spreadsheets (e.g., *Clients*, *Vendors*, *Conventions*) and hot-swap active databases dynamically from the UI.
+*   **💾 Local-First Spreadsheet Storage:** Appends all entries continuously to your active local Excel (`.xlsx`) sheet. Features 1-click downloads.
+*   **☁️ Google Sheets Integration:** Automatically back up local Excel records to a cloud spreadsheet in real-time.
 
 ---
 
 ## 🛠 Tech Stack
 
-| Component | Technology | Role |
-| :--- | :--- | :--- |
-| **Frontend** | React 19, Vite, Tailwind CSS v4, Lucide Icons | Premium glassmorphism HUD interface, map renders, and data flows. |
-| **Backend** | Python 3.13, FastAPI, Uvicorn | Lightweight API routers, OCR image processing, and ledger storage. |
-| **OCR & Vision** | OpenCV, Pillow, PaddleOCR / EasyOCR | Card image cleaning, thresholding, and character recognition. |
-| **Storage Engine**| OpenPyXL, Google Sheets API | Excel writing and cloud synchronization. |
+```
+   FRONTEND                     BACKEND                     OCR & VISION
+┌──────────────┐             ┌──────────────┐             ┌──────────────┐
+│ React 19     │             │ FastAPI      │             │ OpenCV       │
+│ Vite         │    ◀───▶    │ Python 3.13  │    ◀───▶    │ PaddleOCR    │
+│ Tailwind v4  │             │ OpenPyXL     │             │ EasyOCR      │
+└──────────────┘             └──────────────┘             └──────────────┘
+```
 
 ---
 
@@ -39,13 +49,13 @@ CardSnap was built to solve this exact problem. By automating OCR text extractio
 
 ```mermaid
 graph TD
-    User([Physical Card]) -->|Camera/Upload| UI[React Frontend]
+    User([Physical Card]) -->|Camera Scan / Upload| UI[React Frontend HUD]
     UI -->|POST /api/scan| API[FastAPI Backend]
     
     subgraph Engine [Intelligence Processing Engine]
-        API --> OpenCV[OpenCV Image Processing]
+        API --> OpenCV[OpenCV Contrast & Denoise]
         OpenCV --> OCR[PaddleOCR Text Recognition]
-        OCR --> Extract[Heuristic Field Extractor]
+        OCR --> Extract[Heuristic Field Parser]
     end
     
     Extract -->|Return Structured JSON| Review[UI Verification Form]
@@ -53,78 +63,61 @@ graph TD
     
     subgraph Storage [Dual Storage Layer]
         Save -->|Append Row| LocalExcel[Local Excel Ledger]
-        Save -->|Sync Row| GSheets[Google Sheets Cloud]
+        Save -->|Cloud Sync| GSheets[Google Sheets API]
     end
 ```
 
 ---
 
-## 🚀 Quick Start & Local Setup
+## ⚡ Quick Start & Local Setup
 
-### Prerequisites
-*   **Node.js**: v18+ (Recommended v20+)
-*   **Python**: v3.10+
-
----
-
-### 1-Click Launch (Windows Only)
-Double-click the launcher script in the root directory:
+### 1. 1-Click Launch (Windows)
+Simply double-click the launcher script in the root directory:
 ```bash
 ./run-project.bat
 ```
-This automatically spins up the FastAPI backend on `http://localhost:8000` and the React frontend on `http://localhost:5173`.
+*This automatically launches the FastAPI backend (`http://localhost:8000`) and React frontend (`http://localhost:5173`).*
 
 ---
 
-### Manual Launch
+### 2. Manual Installation
+
+> [!IMPORTANT]
+> Make sure you have **Node.js v18+** and **Python v3.10+** installed on your system.
 
 #### A. Backend Setup
-1. Navigate to the backend folder:
-   ```bash
-   cd backend
-   ```
-2. Create and activate a Python virtual environment:
-   ```bash
-   python -m venv venv
-   # Windows:
-   venv\Scripts\activate
-   # macOS/Linux:
-   source venv/bin/activate
-   ```
-3. Install the dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Start the FastAPI server:
-   ```bash
-   uvicorn main:app --reload --port 8000
-   ```
+```bash
+cd backend
+python -m venv venv
+
+# Activate Virtual Environment:
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
 
 #### B. Frontend Setup
-1. Navigate to the frontend folder:
-   ```bash
-   cd frontend
-   ```
-2. Install Node packages:
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-Open **`http://localhost:5173`** in your browser.
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Now navigate to **`http://localhost:5173`** in your browser.
 
 ---
 
-## 📝 Ledger Spreadsheet Format
+## 📝 Active Ledger Format (Example Sheet)
 
-When a contact is saved, CardSnap formats headers and appends data to the current active sheet:
+When a contact is saved, CardSnap formats headers and appends data to the active sheet like this:
 
 | Name | Job Title | Company | Phone | Email | Website | LinkedIn | Address | Notes | Date Added |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Prafhul Gupta | Businessman | PG Enterprises | +91 92205 09397 | info@pgent.com | www.pgent.com | - | Sector 87, Industrial Area, Faridabad | Father / Lead Inspirer | 16/08/2026 |
+| Aarav Mehta | Technology Director | Apex Solutions | +91 98765 43210 | aarav@apexsolutions.com | www.apexsolutions.com | linkedin.com/in/aaravm | Sector 62, Noida, UP | Met at annual tech summit | 16/08/2026 |
+| Priya Sharma | Head of Operations | Zen Logistics | +91 91234 56789 | priya@zenlogistics.in | www.zenlogistics.in | - | Okhla Phase 3, New Delhi | Key lead for Delhi routes | 16/08/2026 |
 
-*   **Append-Only:** New scans append to the next available row. Previous entries are never lost.
+*   **Append-Only:** New entries are added to the bottom of the table. Previously stored contacts are never overwritten.
 *   **Export:** Click the **Excel Ledger** button in the dashboard to immediately download your current spreadsheet file.
