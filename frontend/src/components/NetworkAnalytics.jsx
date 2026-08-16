@@ -10,12 +10,12 @@ export default function NetworkAnalytics({ contacts }) {
   // Stats calculation
   const withEmail = contacts.filter(c => Boolean(c.email)).length;
   const withPhone = contacts.filter(c => Boolean(c.phone)).length;
-  const withLinkedIn = contacts.filter(c => Boolean(c.linkedin)).length;
+  const withWebsite = contacts.filter(c => Boolean(c.website)).length;
   const withCompany = contacts.filter(c => Boolean(c.company)).length;
 
   const emailPct = total > 0 ? Math.round((withEmail / total) * 100) : 0;
   const phonePct = total > 0 ? Math.round((withPhone / total) * 100) : 0;
-  const linkedinPct = total > 0 ? Math.round((withLinkedIn / total) * 100) : 0;
+  const websitePct = total > 0 ? Math.round((withWebsite / total) * 100) : 0;
   const companyPct = total > 0 ? Math.round((withCompany / total) * 100) : 0;
 
   // Companies ranking
@@ -90,11 +90,11 @@ export default function NetworkAnalytics({ contacts }) {
 
         <div className="cyber-card rounded-2xl p-5 space-y-2 hud-corner">
           <div className="flex items-center justify-between text-slate-400 text-xs font-mono font-bold uppercase tracking-wider">
-            <span>LINKEDIN PROFILES</span>
+            <span>WEBSITE LINKS</span>
             <Globe className="w-4 h-4 text-purple-400" />
           </div>
-          <p className="text-3xl font-extrabold text-white font-mono">{linkedinPct}%</p>
-          <p className="text-xs text-purple-400 font-mono font-semibold">{withLinkedIn} of {total} contacts</p>
+          <p className="text-3xl font-extrabold text-white font-mono">{websitePct}%</p>
+          <p className="text-xs text-purple-400 font-mono font-semibold">{withWebsite} of {total} contacts</p>
         </div>
 
       </div>
