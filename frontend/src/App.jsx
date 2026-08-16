@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import NetworkAnalytics from './components/NetworkAnalytics';
+import LedgerHistory from './components/LedgerHistory';
+import ContactGeoMap from './components/ContactGeoMap';
 import ScanModal from './components/ScanModal';
 import { fetchConfigStatus, fetchContacts } from './services/api';
-import { CreditCard, PlusCircle, Users, BarChart3, Cpu, Wifi, Activity, Sparkles, Layers, ShieldAlert } from 'lucide-react';
+import { CreditCard, PlusCircle, Users, BarChart3, Cpu, Wifi, Activity, Sparkles, Layers, ShieldAlert, Database, Map } from 'lucide-react';
 
 export default function App() {
   const [configStatus, setConfigStatus] = useState(null);
@@ -128,6 +130,30 @@ export default function App() {
                 <BarChart3 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Telemetry</span>
               </button>
+
+              <button
+                onClick={() => setActiveView('geomap')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                  activeView === 'geomap'
+                    ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-md shadow-cyan-500/20'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Map className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Map</span>
+              </button>
+
+              <button
+                onClick={() => setActiveView('history')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                  activeView === 'history'
+                    ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-md shadow-cyan-500/20'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Database className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Ledgers</span>
+              </button>
             </div>
 
             {/* Quick Scan Launch Button */}
@@ -171,6 +197,14 @@ export default function App() {
 
           {activeView === 'analytics' && (
             <NetworkAnalytics contacts={contacts} />
+          )}
+
+          {activeView === 'geomap' && (
+            <ContactGeoMap contacts={contacts} />
+          )}
+
+          {activeView === 'history' && (
+            <LedgerHistory onLedgerChanged={loadData} />
           )}
         </main>
 

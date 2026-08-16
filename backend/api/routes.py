@@ -5,7 +5,9 @@ from models.contact import (
     ContactModel,
     ContactScanResult,
     ConfigStatusResponse,
-    SaveContactResponse
+    SaveContactResponse,
+    MergeContactsRequest,
+    RenameLedgerRequest
 )
 from utils.validation import validate_image_file
 from services.image_processing import process_image
@@ -24,6 +26,13 @@ from services.excel_storage import (
     update_contact_in_excel,
     delete_contact_from_excel,
     generate_vcard_string,
+    create_new_excel_sheet,
+    get_all_ledgers,
+    activate_ledger_file,
+    delete_ledger_file,
+    rename_ledger_file,
+    merge_contacts_in_excel,
+    DATA_DIR,
     EXCEL_PATH
 )
 from fastapi.responses import Response
@@ -48,6 +57,13 @@ def delete_contact(row_id: int):
     success, msg = delete_contact_from_excel(row_id)
     if not success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+    return {"success": True, "message": msg}
+
+@router.post("/contacts/reset")
+def reset_contacts_sheet():
+    success, msg = create_new_excel_sheet()
+    if not success:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=msg)
     return {"success": True, "message": msg}
 
 @router.get("/download-vcard")
@@ -90,6 +106,38 @@ def download_excel():
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
+@router.get("/ledgers")
+def list_ledgers():
+    return {"ledgers": get_all_ledgers()}
+
+@router.post("/ledgers/activate/{filename}")
+def activate_ledger(filename: str):
+    success, msg = activate_ledger_file(filename)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+    return {"success": True, "message": msg}
+
+@router.delete("/ledgers/{filename}")
+def delete_ledger(filename: str):
+    success, msg = delete_ledger_file(filename)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+    return {"success": True, "message": msg}
+
+@router.get("/download-excel/{filename}")
+def download_specific_excel(filename: str):
+    filepath = os.path.join(DATA_DIR, filename)
+    if not os.path.abspath(filepath).startswith(os.path.abspath(DATA_DIR)):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+        
+    return FileResponse(
+        path=filepath,
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
 @router.post("/scan", response_model=ContactScanResult)
 async def scan_business_card(file: UploadFile = File(...)):
     try:
@@ -113,6 +161,20 @@ async def scan_business_card(file: UploadFile = File(...)):
             
         # Structure extraction
         extracted_result = extract_contact_info(ocr_results)
+        
+        # Save image to visual vault
+        import uuid
+        from datetime import datetime
+        card_images_dir = os.path.join(DATA_DIR, "card_images")
+        os.makedirs(card_images_dir, exist_ok=True)
+        
+        image_uuid = uuid.uuid4().hex
+        image_filename = f"card_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{image_uuid}.jpg"
+        image_filepath = os.path.join(card_images_dir, image_filename)
+        with open(image_filepath, "wb") as f:
+            f.write(contents)
+            
+        extracted_result.card_image_filename = image_filename
         return extracted_result
 
     except HTTPException:
@@ -157,4 +219,135 @@ def save_contact(contact: ContactModel):
         message="Saved to local Excel sheet.",
         row_added=excel_row
     )
+
+@router.get("/card-image/{filename}")
+def get_card_image(filename: str):
+    image_path = os.path.join(DATA_DIR, "card_images", filename)
+    if not os.path.abspath(image_path).startswith(os.path.abspath(os.path.join(DATA_DIR, "card_images"))):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    if not os.path.exists(image_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
+    return FileResponse(image_path)
+
+@router.get("/contacts/duplicates")
+def get_duplicate_contacts():
+    import re
+    import difflib
+    contacts = get_all_contacts_from_excel()
+    if not contacts:
+        return {"duplicates": []}
+        
+    n = len(contacts)
+    parent = list(range(n))
+    
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+        
+    def union(i, j):
+        root_i = find(i)
+        root_j = find(j)
+        if root_i != root_j:
+            parent[root_i] = root_j
+            
+    # Check matching criteria pairwise
+    for i in range(n):
+        c1 = contacts[i]
+        email1 = c1.get("email", "").strip().lower()
+        phone1 = re.sub(r'\D', '', c1.get("phone", ""))
+        name1 = c1.get("name", "").strip().lower()
+        
+        for j in range(i + 1, n):
+            c2 = contacts[j]
+            email2 = c2.get("email", "").strip().lower()
+            phone2 = re.sub(r'\D', '', c2.get("phone", ""))
+            name2 = c2.get("name", "").strip().lower()
+            
+            is_match = False
+            
+            # 1. Exact email match
+            if email1 and email2 and email1 == email2:
+                is_match = True
+            
+            # 2. Exact phone match (minimum 7 digits)
+            elif phone1 and phone2 and len(phone1) >= 7 and phone1 == phone2:
+                is_match = True
+                
+            # 3. Fuzzy name match (minimum 3 characters, ratio >= 0.85)
+            elif name1 and name2 and len(name1) > 2 and len(name2) > 2:
+                if name1 == name2:
+                    is_match = True
+                else:
+                    ratio = difflib.SequenceMatcher(None, name1, name2).ratio()
+                    if ratio >= 0.85:
+                        is_match = True
+            
+            if is_match:
+                union(i, j)
+                
+    # Group contacts by their root parent
+    clusters = {}
+    for i in range(n):
+        root = find(i)
+        clusters.setdefault(root, []).append(contacts[i])
+        
+    # Filter clusters with size > 1
+    duplicate_groups = []
+    for root, group in clusters.items():
+        if len(group) > 1:
+            # Determine primary match type/value for visual feedback
+            email1 = group[0].get("email", "").strip().lower()
+            phone1 = re.sub(r'\D', '', group[0].get("phone", ""))
+            name1 = group[0].get("name", "").strip().lower()
+            
+            m_type = "Name"
+            m_val = group[0].get("name")
+            
+            # Inspect pair links to display descriptive reason
+            for k in range(1, len(group)):
+                email2 = group[k].get("email", "").strip().lower()
+                phone2 = re.sub(r'\D', '', group[k].get("phone", ""))
+                name2 = group[k].get("name", "").strip().lower()
+                
+                if email1 and email2 and email1 == email2:
+                    m_type = "Email"
+                    m_val = email1
+                    break
+                elif phone1 and phone2 and len(phone1) >= 7 and phone1 == phone2:
+                    m_type = "Phone"
+                    m_val = group[0].get("phone")
+                    break
+                elif name1 and name2 and len(name1) > 2 and len(name2) > 2:
+                    if name1 != name2:
+                        m_type = "Fuzzy Name"
+                        m_val = f"{group[0].get('name')} ~ {group[k].get('name')}"
+                        break
+                    
+            duplicate_groups.append({
+                "type": m_type,
+                "value": m_val,
+                "contacts": group
+            })
+            
+    return {"duplicates": duplicate_groups}
+
+@router.post("/contacts/merge")
+def merge_contacts(req: MergeContactsRequest):
+    success, msg = merge_contacts_in_excel(
+        target_row_id=req.target_row_id,
+        duplicate_row_ids=req.duplicate_row_ids,
+        merged_contact=req.merged_contact
+    )
+    if not success:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+    return {"success": True, "message": msg}
+
+@router.post("/ledgers/rename")
+def rename_ledger(req: RenameLedgerRequest):
+    success, msg = rename_ledger_file(req.filename, req.new_label)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+    return {"success": True, "message": msg}
 

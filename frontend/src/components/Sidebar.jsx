@@ -1,14 +1,14 @@
 import React from 'react';
 import { 
   CreditCard, Users, PlusCircle, BarChart3, Download, 
-  Sparkles, ShieldCheck, Database, Radio, Flame
+  Sparkles, ShieldCheck, Database, Radio, Flame, Map
 } from 'lucide-react';
 
 export default function Sidebar({ activeView, onViewChange, onOpenScan, contactCount, googleSheetsConfigured }) {
   return (
     <aside className="w-64 bg-slate-950/90 border-r border-cyan-500/20 flex flex-col justify-between hidden md:flex shrink-0 min-h-screen sticky top-0 h-screen z-40 backdrop-blur-2xl">
       {/* Top Section */}
-      <div className="p-5 space-y-6">
+      <div className="p-5 space-y-6 overflow-y-auto">
         
         {/* Futuristic Sci-Fi Brand */}
         <div className="flex items-center space-x-3 px-2">
@@ -40,43 +40,99 @@ export default function Sidebar({ activeView, onViewChange, onOpenScan, contactC
         </button>
 
         {/* Navigation Menu */}
-        <div className="space-y-1.5 pt-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 font-mono">
-            Navigation Core
-          </span>
+        <div className="space-y-4 pt-2">
+          
+          {/* Section: Directory Hub */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 font-mono">
+              DIRECTORY SYSTEM
+            </span>
+            <button
+              onClick={() => onViewChange('contacts')}
+              className={`w-full px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition group ${
+                activeView === 'contacts' 
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-indigo-500/10 text-cyan-300 border border-cyan-500/40 shadow-lg shadow-cyan-500/10' 
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Users className={`w-4 h-4 transition ${activeView === 'contacts' ? 'text-cyan-400' : 'text-slate-400 group-hover:text-cyan-400'}`} />
+                <div className="text-left leading-tight">
+                  <span className="font-heading block">Contact Directory</span>
+                  <span className="text-[9px] text-slate-500 font-mono font-normal block mt-0.5">Search, Edit, Delete, vCard</span>
+                </div>
+              </div>
+              {contactCount > 0 && (
+                <span className="px-2 py-0.5 rounded-md bg-cyan-950 text-cyan-300 text-[10px] font-mono font-bold border border-cyan-800/60 shrink-0">
+                  {contactCount}
+                </span>
+              )}
+            </button>
+          </div>
 
-          <button
-            onClick={() => onViewChange('contacts')}
-            className={`w-full px-3.5 py-3 rounded-xl text-xs font-semibold flex items-center justify-between transition group ${
-              activeView === 'contacts' 
-                ? 'bg-gradient-to-r from-cyan-500/20 to-indigo-500/10 text-cyan-300 border border-cyan-500/40 shadow-lg shadow-cyan-500/10' 
-                : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Users className={`w-4 h-4 transition ${activeView === 'contacts' ? 'text-cyan-400' : 'text-slate-400 group-hover:text-cyan-400'}`} />
-              <span className="font-heading">Contact Directory</span>
-            </div>
-            {contactCount > 0 && (
-              <span className="px-2 py-0.5 rounded-md bg-cyan-950 text-cyan-300 text-[10px] font-mono font-bold border border-cyan-800/60">
-                {contactCount}
-              </span>
-            )}
-          </button>
+          {/* Section: Intelligence Hub */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 font-mono">
+              INTELLIGENCE & MAPS
+            </span>
+            <button
+              onClick={() => onViewChange('analytics')}
+              className={`w-full px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center transition group ${
+                activeView === 'analytics' 
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-indigo-500/10 text-cyan-300 border border-cyan-500/40 shadow-lg shadow-cyan-500/10' 
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <BarChart3 className={`w-4 h-4 transition ${activeView === 'analytics' ? 'text-cyan-400' : 'text-slate-400 group-hover:text-cyan-400'}`} />
+                <div className="text-left leading-tight">
+                  <span className="font-heading block">Network Analytics</span>
+                  <span className="text-[9px] text-slate-500 font-mono font-normal block mt-0.5">OCR Index, Org Distribution</span>
+                </div>
+              </div>
+            </button>
 
-          <button
-            onClick={() => onViewChange('analytics')}
-            className={`w-full px-3.5 py-3 rounded-xl text-xs font-semibold flex items-center justify-between transition group ${
-              activeView === 'analytics' 
-                ? 'bg-gradient-to-r from-cyan-500/20 to-indigo-500/10 text-cyan-300 border border-cyan-500/40 shadow-lg shadow-cyan-500/10' 
-                : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <BarChart3 className={`w-4 h-4 transition ${activeView === 'analytics' ? 'text-cyan-400' : 'text-slate-400 group-hover:text-cyan-400'}`} />
-              <span className="font-heading">Telemetry & Analytics</span>
-            </div>
-          </button>
+            <button
+              onClick={() => onViewChange('geomap')}
+              className={`w-full px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center transition group ${
+                activeView === 'geomap' 
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-indigo-500/10 text-cyan-300 border border-cyan-500/40 shadow-lg shadow-cyan-500/10' 
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Map className={`w-4 h-4 transition ${activeView === 'geomap' ? 'text-cyan-400' : 'text-slate-400 group-hover:text-cyan-400'}`} />
+                <div className="text-left leading-tight">
+                  <span className="font-heading block">Geo-Matrix Map</span>
+                  <span className="text-[9px] text-slate-500 font-mono font-normal block mt-0.5">Interactive Contact Map</span>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* Section: Storage Hub */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 font-mono">
+              LEDGER STORAGE
+            </span>
+            <button
+              onClick={() => onViewChange('history')}
+              className={`w-full px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center transition group ${
+                activeView === 'history' 
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-indigo-500/10 text-cyan-300 border border-cyan-500/40 shadow-lg shadow-cyan-500/10' 
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Database className={`w-4 h-4 transition ${activeView === 'history' ? 'text-cyan-400' : 'text-slate-400 group-hover:text-cyan-400'}`} />
+                <div className="text-left leading-tight">
+                  <span className="font-heading block">Ledger Archives</span>
+                  <span className="text-[9px] text-slate-500 font-mono font-normal block mt-0.5">Switch & Purge Sheet History</span>
+                </div>
+              </div>
+            </button>
+          </div>
+
         </div>
       </div>
 

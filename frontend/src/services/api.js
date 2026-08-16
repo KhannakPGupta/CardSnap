@@ -105,3 +105,107 @@ export async function deleteContact(rowId) {
   }
 }
 
+export async function resetContactsSheet() {
+  const res = await fetch(`${API_BASE}/contacts/reset`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`Server error (${res.status}): Failed to reset contacts ledger`);
+  try {
+    return await res.json();
+  } catch (err) {
+    throw new Error('Failed to parse reset response.');
+  }
+}
+
+export async function fetchLedgers() {
+  const res = await fetch(`${API_BASE}/ledgers`);
+  if (!res.ok) throw new Error(`Server error (${res.status}): Failed to fetch ledgers`);
+  try {
+    return await res.json();
+  } catch (err) {
+    throw new Error('Failed to parse ledgers response.');
+  }
+}
+
+export async function activateLedger(filename) {
+  const res = await fetch(`${API_BASE}/ledgers/activate/${encodeURIComponent(filename)}`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Server error (${res.status}): Failed to activate ledger`);
+  }
+  try {
+    return await res.json();
+  } catch (err) {
+    throw new Error('Failed to parse activation response.');
+  }
+}
+
+export async function deleteLedger(filename) {
+  const res = await fetch(`${API_BASE}/ledgers/${encodeURIComponent(filename)}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Server error (${res.status}): Failed to delete ledger`);
+  }
+  try {
+    return await res.json();
+  } catch (err) {
+    throw new Error('Failed to parse delete response.');
+  }
+}
+
+export async function fetchDuplicates() {
+  const res = await fetch(`${API_BASE}/contacts/duplicates`);
+  if (!res.ok) throw new Error(`Server error (${res.status}): Failed to fetch duplicates`);
+  try {
+    return await res.json();
+  } catch (err) {
+    throw new Error('Failed to parse duplicates response.');
+  }
+}
+
+export async function mergeDuplicates(targetRowId, duplicateRowIds, mergedContact) {
+  const res = await fetch(`${API_BASE}/contacts/merge`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      target_row_id: targetRowId,
+      duplicate_row_ids: duplicateRowIds,
+      merged_contact: mergedContact
+    }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Server error (${res.status}): Failed to merge contacts`);
+  }
+  try {
+    return await res.json();
+  } catch (err) {
+    throw new Error('Failed to parse merge response.');
+  }
+}
+
+export async function renameLedger(filename, newLabel) {
+  const res = await fetch(`${API_BASE}/ledgers/rename`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      filename: filename,
+      new_label: newLabel
+    }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Server error (${res.status}): Failed to rename ledger`);
+  }
+  try {
+    return await res.json();
+  } catch (err) {
+    throw new Error('Failed to parse rename response.');
+  }
+}
+
+

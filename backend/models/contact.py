@@ -11,6 +11,7 @@ class ContactModel(BaseModel):
     linkedin: Optional[str] = ""
     address: Optional[str] = ""
     notes: Optional[str] = ""
+    image_path: Optional[str] = ""
 
 class FieldConfidence(BaseModel):
     value: str = ""
@@ -27,6 +28,7 @@ class ContactScanResult(BaseModel):
     address: FieldConfidence
     notes: FieldConfidence
     raw_ocr: List[Dict[str, Any]] = []
+    card_image_filename: Optional[str] = ""
 
 class ConfigStatusResponse(BaseModel):
     google_sheets_configured: bool
@@ -39,3 +41,12 @@ class SaveContactResponse(BaseModel):
     success: bool
     message: str
     row_added: Optional[int] = None
+
+class MergeContactsRequest(BaseModel):
+    target_row_id: int
+    duplicate_row_ids: List[int]
+    merged_contact: ContactModel
+
+class RenameLedgerRequest(BaseModel):
+    filename: str
+    new_label: str
