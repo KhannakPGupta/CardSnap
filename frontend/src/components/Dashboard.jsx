@@ -4,10 +4,10 @@ import {
   Users, Building, MapPin, Grid, List, Plus, Copy, Check, RefreshCw, X, ShieldAlert, Sparkles,
   Zap, Globe, Share2, Cpu, Layers, Command, Eye
 } from 'lucide-react';
-import { fetchContacts, updateContact, deleteContact, resetContactsSheet, saveContact, fetchDuplicates } from '../services/api';
+import { fetchContacts, updateContact, deleteContact, resetContactsSheet, saveContact, fetchDuplicates, BACKEND_URL } from '../services/api';
 import SmartMerge from './SmartMerge';
 
-export default function Dashboard({ onScanNew }) {
+export default function Dashboard({ onScanNew, googleSheetsConfigured, spreadsheetId }) {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -208,7 +208,7 @@ export default function Dashboard({ onScanNew }) {
               TOTAL RECORDED
             </span>
             <p className="text-sm text-white font-semibold font-heading">Contacts in Ledger</p>
-            <p className="text-[11px] text-slate-400">Synced to Excel & Cloud</p>
+            <p className="text-[11px] text-slate-400">Synced to Ledger & Cloud</p>
           </div>
         </div>
 
@@ -334,7 +334,7 @@ export default function Dashboard({ onScanNew }) {
 
           {/* vCard Export */}
           <a
-            href="http://localhost:8000/api/download-vcard"
+            href={`${BACKEND_URL}/api/download-vcard`}
             download
             className="px-3.5 py-2.5 bg-slate-950 hover:bg-slate-900 text-cyan-300 text-xs font-medium rounded-xl border border-slate-800 hover:border-cyan-500/40 transition flex items-center gap-2"
           >
@@ -342,15 +342,27 @@ export default function Dashboard({ onScanNew }) {
             <span>vCard</span>
           </a>
 
-          {/* Excel Export */}
-          <a
-            href="http://localhost:8000/api/download-excel"
-            download
-            className="px-3.5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-xl border border-emerald-500/30 transition flex items-center gap-2 shadow-sm"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Excel Ledger</span>
-          </a>
+          {/* Excel Export or Google Sheet link */}
+          {googleSheetsConfigured && spreadsheetId ? (
+            <a
+              href={`https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-xl border border-emerald-500/30 transition flex items-center gap-2 shadow-sm"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Google Sheet</span>
+            </a>
+          ) : (
+            <a
+              href={`${BACKEND_URL}/api/download-excel`}
+              download
+              className="px-3.5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-xl border border-emerald-500/30 transition flex items-center gap-2 shadow-sm"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Excel Ledger</span>
+            </a>
+          )}
 
           {/* Create New Sheet */}
           <button
@@ -738,7 +750,7 @@ export default function Dashboard({ onScanNew }) {
             <div className="space-y-1">
               <h3 className="font-bold text-white text-lg font-heading">Purge Record?</h3>
               <p className="text-xs text-slate-400">
-                This action will permanently delete this contact from your Excel Ledger and Database.
+                This action will permanently delete this contact from your Ledger and Database.
               </p>
             </div>
             <div className="flex justify-center gap-3 pt-2">
@@ -769,7 +781,7 @@ export default function Dashboard({ onScanNew }) {
             <div className="space-y-1">
               <h3 className="font-bold text-white text-lg font-heading">Start New Sheet?</h3>
               <p className="text-xs text-slate-400">
-                This will archive the current Excel sheet and create a fresh new one. Your existing contacts will be safely backed up.
+                This will archive the current ledger sheet and create a fresh new one. Your existing contacts will be safely backed up.
               </p>
             </div>
             <div className="flex justify-center gap-3 pt-2">
@@ -1059,7 +1071,7 @@ export default function Dashboard({ onScanNew }) {
 
                   <div className="w-full flex-1 flex items-center justify-center p-2 my-4 bg-slate-900/40 rounded-xl overflow-hidden min-h-[220px]">
                     <img 
-                      src={`http://localhost:8000/api/card-image/${viewingContact.image_path}`} 
+                      src={`${BACKEND_URL}/api/card-image/${viewingContact.image_path}`} 
                       alt="Scanned Card" 
                       className="max-h-[240px] object-contain rounded-lg border border-cyan-500/10 shadow-lg"
                       onError={(e) => {

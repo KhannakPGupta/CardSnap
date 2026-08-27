@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BACKEND_URL } from '../services/api';
 import {
   User, Briefcase, Building, Phone, Mail, Globe, Link, MapPin, FileText,
   AlertTriangle, Save, RotateCcw, ChevronDown, ChevronUp, Terminal, Sparkles, CheckCircle2
@@ -69,7 +70,7 @@ export default function ContactReview({ scanData, onSave, onCancel }) {
                 Review Extracted Intel
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Confirm parameters before committing to Database Matrix & Excel Ledger.
+                Confirm parameters before committing to Database Matrix & Cloud Ledger.
               </p>
             </div>
             <button
@@ -188,7 +189,7 @@ export default function ContactReview({ scanData, onSave, onCancel }) {
             
             <div className="w-full flex-1 flex items-center justify-center bg-slate-950/80 rounded-2xl border border-slate-900 my-4 p-2 overflow-hidden min-h-[300px]">
               <img 
-                src={`http://localhost:8000/api/card-image/${scanData.card_image_filename}`}
+                src={`${BACKEND_URL}/api/card-image/${scanData.card_image_filename}`}
                 alt="Original Business Card"
                 className="max-h-[320px] object-contain rounded-lg border border-cyan-500/10 shadow-lg"
                 onError={(e) => {

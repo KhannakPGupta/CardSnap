@@ -141,6 +141,8 @@ def extract_contact_info(ocr_items: List[Dict[str, Any]]) -> ContactScanResult:
                     raw_phone = match.group(0).strip()
                     # Clean up trailing letters/noise
                     raw_phone = re.sub(r'^[a-zA-Z\s:]+', '', raw_phone).strip()
+                    # Remove spaces inside the phone number
+                    raw_phone = raw_phone.replace(" ", "")
                     if len(re.sub(r'\D', '', raw_phone)) >= 7:
                         extracted["phone"] = {"value": raw_phone, "confidence": 0.93 if has_phone_keyword else 0.85}
                         used_line_indices.add(idx)

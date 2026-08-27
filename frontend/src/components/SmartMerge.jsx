@@ -165,7 +165,7 @@ export default function SmartMerge({ isOpen, onClose, onMerged }) {
             </div>
             <div className="space-y-1">
               <h3 className="text-lg font-bold text-white font-heading">Database Matrix Consistently Clean</h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">No duplicates or overlapping contact vectors detected in the active Excel ledger.</p>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">No duplicates or overlapping contact vectors detected in the active ledger.</p>
             </div>
             <button onClick={onClose} className="px-5 py-2.5 bg-slate-900 text-cyan-300 border border-cyan-500/20 hover:border-cyan-400 rounded-xl text-xs uppercase font-heading font-extrabold tracking-wider">
               Return to Hub

@@ -1,5 +1,6 @@
 import React from 'react';
 import { CreditCard, ExternalLink, Download, RefreshCw, LayoutDashboard, Camera } from 'lucide-react';
+import { BACKEND_URL } from '../services/api';
 
 export default function Header({ status, currentTab, onTabChange, onRefresh }) {
   const isConfigured = status?.google_sheets_configured;
@@ -86,13 +87,13 @@ export default function Header({ status, currentTab, onTabChange, onRefresh }) {
           ) : (
             <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium">
               <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
-              Local Excel Active ({localExcelCount})
+              Local Ledger Active ({localExcelCount})
             </div>
           )}
 
           {/* Download Excel File Button */}
           <a
-            href="http://localhost:8000/api/download-excel"
+            href={`${BACKEND_URL}/api/download-excel`}
             download
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-indigo-300 bg-indigo-600/10 hover:bg-indigo-600/20 transition-all border border-indigo-500/30"
             title="Download CardSnap_Contacts.xlsx spreadsheet"

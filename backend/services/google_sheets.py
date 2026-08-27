@@ -74,6 +74,43 @@ def is_google_sheets_configured() -> Tuple[bool, Optional[str], Optional[str]]:
     except Exception as e:
         return False, sheet_id, f"Google Service Account error: {str(e)}"
 
+def filename_to_tab_name(filename: str) -> str:
+    """
+    Converts a local Excel filename to a Google Sheets tab (worksheet) name.
+    Examples:
+      - "CardSnap_Contacts.xlsx" -> "Active Contacts"
+      - "CardSnap_Contacts_20260828_120000.xlsx" -> "Contacts_20260828_120000"
+      - "CardSnap_Contacts_custom_label.xlsx" -> "Contacts_custom_label"
+    """
+    if filename == "CardSnap_Contacts.xlsx":
+        return "Active Contacts"
+    
+    # Strip extension
+    name_without_ext = filename[:-5] if filename.endswith(".xlsx") else filename
+    if name_without_ext.startswith("CardSnap_"):
+        return name_without_ext[9:]  # strip "CardSnap_"
+    return name_without_ext
+
+def get_active_worksheet(sh) -> Any:
+    """
+    Finds or creates the "Active Contacts" worksheet.
+    If "Active Contacts" is missing but default tabs exist, renames them.
+    """
+    try:
+        return sh.worksheet("Active Contacts")
+    except Exception:
+        # Check for common default titles and rename to "Active Contacts"
+        worksheets = sh.worksheets()
+        for w in worksheets:
+            if w.title in ["Sheet1", "Sheet 1", "Contacts"]:
+                try:
+                    w.update_title("Active Contacts")
+                    return w
+                except Exception:
+                    pass
+        # Fallback: create a new tab
+        return sh.add_worksheet(title="Active Contacts", rows="1000", cols="20")
+
 def get_contact_count() -> Optional[int]:
     """
     Returns the number of contacts currently in the Google Sheet (excluding header).
@@ -85,7 +122,7 @@ def get_contact_count() -> Optional[int]:
     try:
         client = get_gspread_client()
         sh = client.open_by_key(sheet_id)
-        worksheet = sh.sheet1
+        worksheet = get_active_worksheet(sh)
         all_values = worksheet.get_all_values()
         if not all_values:
             return 0
@@ -110,7 +147,7 @@ def append_contact_to_sheet(contact: ContactModel) -> Tuple[bool, str, Optional[
     try:
         client = get_gspread_client()
         sh = client.open_by_key(sheet_id)
-        worksheet = sh.sheet1
+        worksheet = get_active_worksheet(sh)
         
         # Verify or create header
         existing_rows = worksheet.get_all_values()
@@ -123,12 +160,15 @@ def append_contact_to_sheet(contact: ContactModel) -> Tuple[bool, str, Optional[
             existing_rows = [HEADERS] + existing_rows
 
         date_added = datetime.now().strftime("%d/%m/%Y")
+        phone_val = contact.phone or ""
+        if phone_val:
+            phone_val = f"'{phone_val}"
         
         row_data = [
             contact.name or "",
             contact.job_title or "",
             contact.company or "",
-            contact.phone or "",
+            phone_val,
             contact.email or "",
             contact.website or "",
             contact.linkedin or "",
@@ -145,3 +185,108 @@ def append_contact_to_sheet(contact: ContactModel) -> Tuple[bool, str, Optional[
     except Exception as e:
         logger.error(f"Failed to append contact to Google Sheet: {e}")
         return False, f"Google Sheets save error: {str(e)}", None
+
+def archive_active_worksheet_in_gs(archive_filename: str) -> Tuple[bool, str]:
+    """
+    Renames the current "Active Contacts" worksheet to the archive title,
+    then initializes a fresh new "Active Contacts" worksheet with headers.
+    """
+    is_conf, sheet_id, msg = is_google_sheets_configured()
+    if not is_conf or not sheet_id:
+        return False, f"Google Sheet not connected: {msg}"
+
+    try:
+        client = get_gspread_client()
+        sh = client.open_by_key(sheet_id)
+        
+        # Determine tab name from filename
+        archive_tab_name = filename_to_tab_name(archive_filename)
+        
+        # Get active tab and rename it
+        active_wks = get_active_worksheet(sh)
+        active_wks.update_title(archive_tab_name)
+        
+        # Create fresh "Active Contacts" tab
+        new_active = sh.add_worksheet(title="Active Contacts", rows="1000", cols="20")
+        new_active.append_row(HEADERS)
+        
+        return True, f"Google Sheet archived to '{archive_tab_name}'."
+    except Exception as e:
+        logger.error(f"Failed to archive worksheet in Google Sheets: {e}")
+        return False, f"Google Sheets archive error: {str(e)}"
+
+def activate_archived_worksheet_in_gs(target_filename: str, backup_filename: str) -> Tuple[bool, str]:
+    """
+    Renames current "Active Contacts" worksheet to backup_filename tab title,
+    then renames the target_filename tab worksheet to "Active Contacts".
+    """
+    is_conf, sheet_id, msg = is_google_sheets_configured()
+    if not is_conf or not sheet_id:
+        return False, f"Google Sheet not connected: {msg}"
+
+    try:
+        client = get_gspread_client()
+        sh = client.open_by_key(sheet_id)
+        
+        target_tab_name = filename_to_tab_name(target_filename)
+        backup_tab_name = filename_to_tab_name(backup_filename)
+        
+        # Rename active to backup
+        try:
+            active_wks = sh.worksheet("Active Contacts")
+            active_wks.update_title(backup_tab_name)
+        except Exception as e:
+            logger.warning(f"Could not find or rename active worksheet during activation: {e}")
+            
+        # Rename target to Active Contacts
+        target_wks = sh.worksheet(target_tab_name)
+        target_wks.update_title("Active Contacts")
+        
+        return True, f"Google Sheet tab '{target_tab_name}' activated."
+    except Exception as e:
+        logger.error(f"Failed to activate worksheet in Google Sheets: {e}")
+        return False, f"Google Sheets activation error: {str(e)}"
+
+def delete_archived_worksheet_in_gs(filename: str) -> Tuple[bool, str]:
+    """
+    Finds and deletes the worksheet corresponding to the filename.
+    """
+    is_conf, sheet_id, msg = is_google_sheets_configured()
+    if not is_conf or not sheet_id:
+        return False, f"Google Sheet not connected: {msg}"
+
+    try:
+        client = get_gspread_client()
+        sh = client.open_by_key(sheet_id)
+        
+        tab_name = filename_to_tab_name(filename)
+        wks = sh.worksheet(tab_name)
+        sh.del_worksheet(wks)
+        
+        return True, f"Google Sheet tab '{tab_name}' deleted."
+    except Exception as e:
+        logger.error(f"Failed to delete worksheet in Google Sheets: {e}")
+        return False, f"Google Sheets delete error: {str(e)}"
+
+def rename_archived_worksheet_in_gs(old_filename: str, new_filename: str) -> Tuple[bool, str]:
+    """
+    Renames an archived worksheet corresponding to old_filename to new_filename.
+    """
+    is_conf, sheet_id, msg = is_google_sheets_configured()
+    if not is_conf or not sheet_id:
+        return False, f"Google Sheet not connected: {msg}"
+
+    try:
+        client = get_gspread_client()
+        sh = client.open_by_key(sheet_id)
+        
+        old_tab_name = filename_to_tab_name(old_filename)
+        new_tab_name = filename_to_tab_name(new_filename)
+        
+        wks = sh.worksheet(old_tab_name)
+        wks.update_title(new_tab_name)
+        
+        return True, f"Google Sheet tab renamed from '{old_tab_name}' to '{new_tab_name}'."
+    except Exception as e:
+        logger.error(f"Failed to rename worksheet in Google Sheets: {e}")
+        return False, f"Google Sheets rename error: {str(e)}"

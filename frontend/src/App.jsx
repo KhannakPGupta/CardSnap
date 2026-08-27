@@ -60,6 +60,7 @@ export default function App() {
         onOpenScan={() => setScanModalOpen(true)}
         contactCount={contacts.length}
         googleSheetsConfigured={configStatus?.google_sheets_configured}
+        spreadsheetId={configStatus?.spreadsheet_id}
       />
 
       {/* Main Workspace Column */}
@@ -192,6 +193,8 @@ export default function App() {
           {activeView === 'contacts' && (
             <Dashboard 
               onScanNew={() => setScanModalOpen(true)} 
+              googleSheetsConfigured={configStatus?.google_sheets_configured}
+              spreadsheetId={configStatus?.spreadsheet_id}
             />
           )}
 
@@ -214,7 +217,7 @@ export default function App() {
             <Layers className="w-3.5 h-3.5 text-cyan-400" />
             <span className="font-mono text-[11px]">CardSnap HUD System v2.5 — Neural Contact Intelligence</span>
           </div>
-          <p className="text-[11px]">Continuously verified against Excel Database & Cloud Matrix</p>
+          <p className="text-[11px]">Continuously verified against Ledger Database & Cloud Matrix</p>
         </footer>
 
       </div>

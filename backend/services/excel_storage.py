@@ -3,7 +3,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 from datetime import datetime
-from typing import Tuple
+from typing import Tuple, Optional
 from models.contact import ContactModel
 
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
@@ -189,20 +189,22 @@ def generate_vcard_string(contacts: list) -> str:
         vcards.append("\n".join(vcard))
     return "\n\n".join(vcards)
 
-def create_new_excel_sheet() -> Tuple[bool, str]:
+def create_new_excel_sheet() -> Tuple[bool, str, Optional[str]]:
     """Archives the current CardSnap_Contacts.xlsx file and creates a fresh styled one."""
     try:
+        from typing import Optional
         if os.path.exists(EXCEL_PATH):
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            archive_path = os.path.join(DATA_DIR, f"CardSnap_Contacts_{timestamp}.xlsx")
+            archive_filename = f"CardSnap_Contacts_{timestamp}.xlsx"
+            archive_path = os.path.join(DATA_DIR, archive_filename)
             os.rename(EXCEL_PATH, archive_path)
             ensure_excel_file_exists()
-            return True, f"Old ledger archived as CardSnap_Contacts_{timestamp}.xlsx, new ledger initialized."
+            return True, f"Old ledger archived as {archive_filename}, new ledger initialized.", archive_filename
         else:
             ensure_excel_file_exists()
-            return True, "Fresh ledger initialized."
+            return True, "Fresh ledger initialized.", None
     except Exception as e:
-        return False, f"Error creating new sheet: {str(e)}"
+        return False, f"Error creating new sheet: {str(e)}", None
 
 def get_all_ledgers() -> list:
     """Lists all Excel files in the data directory with metadata."""
@@ -237,27 +239,30 @@ def get_all_ledgers() -> list:
         print(f"Error listing ledgers: {e}")
     return ledgers
 
-def activate_ledger_file(filename: str) -> Tuple[bool, str]:
+def activate_ledger_file(filename: str) -> Tuple[bool, str, Optional[str]]:
     """Activates an archived ledger by copying/moving it to CardSnap_Contacts.xlsx."""
     try:
+        from typing import Optional
         target_path = os.path.join(DATA_DIR, filename)
         if not os.path.exists(target_path):
-            return False, "Ledger file not found"
+            return False, "Ledger file not found", None
         
         if filename == "CardSnap_Contacts.xlsx":
-            return True, "Ledger is already active"
+            return True, "Ledger is already active", None
         
+        backup_filename = None
         # Backup the current active ledger first
         if os.path.exists(EXCEL_PATH):
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_path = os.path.join(DATA_DIR, f"CardSnap_Contacts_{timestamp}.xlsx")
+            backup_filename = f"CardSnap_Contacts_{timestamp}.xlsx"
+            backup_path = os.path.join(DATA_DIR, backup_filename)
             os.rename(EXCEL_PATH, backup_path)
             
         import shutil
         shutil.copy(target_path, EXCEL_PATH)
-        return True, "Ledger activated successfully"
+        return True, "Ledger activated successfully", backup_filename
     except Exception as e:
-        return False, f"Error activating ledger: {str(e)}"
+        return False, f"Error activating ledger: {str(e)}", None
 
 def delete_ledger_file(filename: str) -> Tuple[bool, str]:
     """Deletes an archived ledger file. Cannot delete the active CardSnap_Contacts.xlsx file."""
@@ -278,12 +283,13 @@ def delete_ledger_file(filename: str) -> Tuple[bool, str]:
     except Exception as e:
         return False, f"Error deleting ledger: {str(e)}"
 
-def rename_ledger_file(old_filename: str, new_label: str) -> Tuple[bool, str]:
+def rename_ledger_file(old_filename: str, new_label: str) -> Tuple[bool, str, Optional[str]]:
     """Renames an Excel ledger file, preserving security and prefix paths."""
     try:
+        from typing import Optional
         clean_label = "".join(c for c in new_label if c.isalnum() or c in ("_", "-")).strip()
         if not clean_label:
-            return False, "Invalid label name. Use only alphanumeric characters, dashes, or underscores."
+            return False, "Invalid label name. Use only alphanumeric characters, dashes, or underscores.", None
             
         new_filename = f"CardSnap_Contacts_{clean_label}.xlsx"
         
@@ -293,13 +299,13 @@ def rename_ledger_file(old_filename: str, new_label: str) -> Tuple[bool, str]:
         # Security checks
         if not os.path.abspath(old_path).startswith(os.path.abspath(DATA_DIR)) or \
            not os.path.abspath(new_path).startswith(os.path.abspath(DATA_DIR)):
-            return False, "Unauthorized access path."
+            return False, "Unauthorized access path.", None
             
         if not os.path.exists(old_path):
-            return False, "Source ledger file not found."
+            return False, "Source ledger file not found.", None
             
         if os.path.exists(new_path):
-            return False, f"A ledger named '{new_filename}' already exists."
+            return False, f"A ledger named '{new_filename}' already exists.", None
             
         os.rename(old_path, new_path)
         
@@ -307,9 +313,9 @@ def rename_ledger_file(old_filename: str, new_label: str) -> Tuple[bool, str]:
         if old_filename == "CardSnap_Contacts.xlsx":
             ensure_excel_file_exists()
             
-        return True, f"Ledger renamed successfully to {new_filename}"
+        return True, f"Ledger renamed successfully to {new_filename}", new_filename
     except Exception as e:
-        return False, f"Error renaming ledger: {str(e)}"
+        return False, f"Error renaming ledger: {str(e)}", None
 
 def merge_contacts_in_excel(target_row_id: int, duplicate_row_ids: list, merged_contact: ContactModel) -> Tuple[bool, str]:
     """Merges a group of contact rows by updating the target row and deleting the duplicates."""

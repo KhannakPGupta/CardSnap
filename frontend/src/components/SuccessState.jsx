@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircle, ExternalLink, PlusCircle, Building, User, Phone, Mail } from 'lucide-react';
+import { BACKEND_URL } from '../services/api';
 
 export default function SuccessState({ savedContact, spreadsheetId, totalCount, onScanAnother }) {
   const sheetUrl = spreadsheetId 
@@ -74,11 +75,11 @@ export default function SuccessState({ savedContact, spreadsheetId, totalCount, 
           </a>
         ) : (
           <a
-            href="http://localhost:8000/api/download-excel"
+            href={`${BACKEND_URL}/api/download-excel`}
             download
             className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-indigo-300 font-medium rounded-xl text-sm flex items-center justify-center gap-2 border border-indigo-500/30 transition"
           >
-            <span>Download Excel Sheet</span>
+            <span>Download Local Sheet</span>
             <ExternalLink className="w-4 h-4 text-indigo-400" />
           </a>
         )}

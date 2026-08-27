@@ -1,10 +1,11 @@
 import React from 'react';
+import { BACKEND_URL } from '../services/api';
 import { 
   CreditCard, Users, PlusCircle, BarChart3, Download, 
-  Sparkles, ShieldCheck, Database, Radio, Flame, Map
+  Sparkles, ShieldCheck, Database, Radio, Flame, Map, ExternalLink
 } from 'lucide-react';
 
-export default function Sidebar({ activeView, onViewChange, onOpenScan, contactCount, googleSheetsConfigured }) {
+export default function Sidebar({ activeView, onViewChange, onOpenScan, contactCount, googleSheetsConfigured, spreadsheetId }) {
   return (
     <aside className="w-64 bg-slate-950/90 border-r border-cyan-500/20 flex flex-col justify-between hidden md:flex shrink-0 min-h-screen sticky top-0 h-screen z-40 backdrop-blur-2xl">
       {/* Top Section */}
@@ -146,22 +147,39 @@ export default function Sidebar({ activeView, onViewChange, onOpenScan, contactC
             <Flame className="w-3 h-3 text-cyan-400 animate-pulse" />
           </span>
           
-          <a
-            href="http://localhost:8000/api/download-excel"
-            download
-            className="w-full px-3 py-2.5 rounded-xl text-xs font-medium text-slate-300 bg-slate-900/80 hover:bg-slate-800 hover:text-cyan-300 transition flex items-center justify-between border border-slate-800 hover:border-cyan-500/30"
-          >
-            <span className="flex items-center gap-2">
-              <Download className="w-3.5 h-3.5 text-emerald-400" />
-              Excel (.xlsx)
-            </span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono font-bold border border-emerald-500/20">
-              READY
-            </span>
-          </a>
+          {googleSheetsConfigured && spreadsheetId ? (
+            <a
+              href={`https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full px-3 py-2.5 rounded-xl text-xs font-medium text-slate-300 bg-slate-900/80 hover:bg-slate-800 hover:text-cyan-300 transition flex items-center justify-between border border-slate-800 hover:border-cyan-500/30"
+            >
+              <span className="flex items-center gap-2">
+                <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
+                Google Sheet
+              </span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono font-bold border border-emerald-500/20">
+                ACTIVE
+              </span>
+            </a>
+          ) : (
+            <a
+              href={`${BACKEND_URL}/api/download-excel`}
+              download
+              className="w-full px-3 py-2.5 rounded-xl text-xs font-medium text-slate-300 bg-slate-900/80 hover:bg-slate-800 hover:text-cyan-300 transition flex items-center justify-between border border-slate-800 hover:border-cyan-500/30"
+            >
+              <span className="flex items-center gap-2">
+                <Download className="w-3.5 h-3.5 text-emerald-400" />
+                Excel (.xlsx)
+              </span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono font-bold border border-emerald-500/20">
+                LOCAL
+              </span>
+            </a>
+          )}
 
           <a
-            href="http://localhost:8000/api/download-vcard"
+            href={`${BACKEND_URL}/api/download-vcard`}
             download
             className="w-full px-3 py-2.5 rounded-xl text-xs font-medium text-slate-300 bg-slate-900/80 hover:bg-slate-800 hover:text-cyan-300 transition flex items-center justify-between border border-slate-800 hover:border-cyan-500/30"
           >
@@ -185,7 +203,7 @@ export default function Sidebar({ activeView, onViewChange, onOpenScan, contactC
             <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
           </div>
           <p className="text-[10px] text-slate-400 leading-tight">
-            {googleSheetsConfigured ? 'Real-time dual append to Google Sheets' : 'Continuous append to local Excel ledger'}
+            {googleSheetsConfigured ? 'Real-time dual append to Google Sheets' : 'Continuous append to local ledger'}
           </p>
         </div>
 

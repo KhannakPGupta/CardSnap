@@ -16,7 +16,11 @@ from services.extractor import extract_contact_info
 from services.google_sheets import (
     is_google_sheets_configured,
     get_contact_count,
-    append_contact_to_sheet
+    append_contact_to_sheet,
+    archive_active_worksheet_in_gs,
+    activate_archived_worksheet_in_gs,
+    delete_archived_worksheet_in_gs,
+    rename_archived_worksheet_in_gs
 )
 from services.excel_storage import (
     append_contact_to_excel,
@@ -61,9 +65,18 @@ def delete_contact(row_id: int):
 
 @router.post("/contacts/reset")
 def reset_contacts_sheet():
-    success, msg = create_new_excel_sheet()
+    success, msg, archive_filename = create_new_excel_sheet()
     if not success:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=msg)
+    
+    # Sync with Google Sheets if configured
+    is_configured, _, _ = is_google_sheets_configured()
+    if is_configured and archive_filename:
+        gs_success, gs_msg = archive_active_worksheet_in_gs(archive_filename)
+        if not gs_success:
+            logger.warning(f"Google Sheets archive sync failed: {gs_msg}")
+            return {"success": True, "message": f"{msg} (Google Sheets sync error: {gs_msg})"}
+            
     return {"success": True, "message": msg}
 
 @router.get("/download-vcard")
@@ -112,9 +125,18 @@ def list_ledgers():
 
 @router.post("/ledgers/activate/{filename}")
 def activate_ledger(filename: str):
-    success, msg = activate_ledger_file(filename)
+    success, msg, backup_filename = activate_ledger_file(filename)
     if not success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+        
+    # Sync with Google Sheets if configured
+    is_configured, _, _ = is_google_sheets_configured()
+    if is_configured and backup_filename:
+        gs_success, gs_msg = activate_archived_worksheet_in_gs(filename, backup_filename)
+        if not gs_success:
+            logger.warning(f"Google Sheets activation sync failed: {gs_msg}")
+            return {"success": True, "message": f"{msg} (Google Sheets sync error: {gs_msg})"}
+            
     return {"success": True, "message": msg}
 
 @router.delete("/ledgers/{filename}")
@@ -122,6 +144,15 @@ def delete_ledger(filename: str):
     success, msg = delete_ledger_file(filename)
     if not success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+        
+    # Sync with Google Sheets if configured
+    is_configured, _, _ = is_google_sheets_configured()
+    if is_configured:
+        gs_success, gs_msg = delete_archived_worksheet_in_gs(filename)
+        if not gs_success:
+            logger.warning(f"Google Sheets delete sync failed: {gs_msg}")
+            return {"success": True, "message": f"{msg} (Google Sheets sync error: {gs_msg})"}
+            
     return {"success": True, "message": msg}
 
 @router.get("/download-excel/{filename}")
@@ -346,8 +377,17 @@ def merge_contacts(req: MergeContactsRequest):
 
 @router.post("/ledgers/rename")
 def rename_ledger(req: RenameLedgerRequest):
-    success, msg = rename_ledger_file(req.filename, req.new_label)
+    success, msg, new_filename = rename_ledger_file(req.filename, req.new_label)
     if not success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+        
+    # Sync with Google Sheets if configured
+    is_configured, _, _ = is_google_sheets_configured()
+    if is_configured and new_filename:
+        gs_success, gs_msg = rename_archived_worksheet_in_gs(req.filename, new_filename)
+        if not gs_success:
+            logger.warning(f"Google Sheets rename sync failed: {gs_msg}")
+            return {"success": True, "message": f"{msg} (Google Sheets sync error: {gs_msg})"}
+            
     return {"success": True, "message": msg}
 

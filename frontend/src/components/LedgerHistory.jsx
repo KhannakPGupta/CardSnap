@@ -3,7 +3,7 @@ import {
   Database, Trash2, Download, RefreshCw, AlertTriangle, 
   Check, FileSpreadsheet, Layers, Clock, HardDrive, ShieldAlert, Plus, Edit3
 } from 'lucide-react';
-import { fetchLedgers, activateLedger, deleteLedger, resetContactsSheet, renameLedger } from '../services/api';
+import { fetchLedgers, activateLedger, deleteLedger, resetContactsSheet, renameLedger, BACKEND_URL } from '../services/api';
 
 export default function LedgerHistory({ onLedgerChanged }) {
   const [ledgers, setLedgers] = useState([]);
@@ -213,7 +213,7 @@ export default function LedgerHistory({ onLedgerChanged }) {
           </div>
           <h3 className="text-xl font-bold text-white font-heading">No Ledger Files Found</h3>
           <p className="text-sm text-slate-400 max-w-md mx-auto">
-            Your Excel storage system is uninitialized. Save a contact to create the first ledger sheet automatically.
+            Your storage system is uninitialized. Save a contact to create the first ledger sheet automatically.
           </p>
         </div>
       ) : (
@@ -294,7 +294,7 @@ export default function LedgerHistory({ onLedgerChanged }) {
                         
                         {/* Download Ledger */}
                         <a
-                          href={`http://localhost:8000/api/download-excel/${l.filename}`}
+                          href={`${BACKEND_URL}/api/download-excel/${l.filename}`}
                           download
                           className="p-2 text-slate-400 hover:text-cyan-300 hover:bg-slate-800 rounded-xl transition border border-transparent hover:border-slate-700/50"
                           title="Download Spreadsheet File"
@@ -432,7 +432,7 @@ export default function LedgerHistory({ onLedgerChanged }) {
             <div className="space-y-1">
               <h3 className="font-bold text-white text-lg font-heading">Start Fresh Ledger?</h3>
               <p className="text-xs text-slate-400">
-                This will move your current active Excel ledger into a backup file and initialize a new empty active sheet.
+                This will move your current active ledger into a backup file and initialize a new empty active sheet.
               </p>
             </div>
             <div className="flex justify-center gap-3 pt-2">
