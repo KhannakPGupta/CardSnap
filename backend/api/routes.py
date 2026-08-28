@@ -193,19 +193,8 @@ async def scan_business_card(file: UploadFile = File(...)):
         # Structure extraction
         extracted_result = extract_contact_info(ocr_results)
         
-        # Save image to visual vault
-        import uuid
-        from datetime import datetime
-        card_images_dir = os.path.join(DATA_DIR, "card_images")
-        os.makedirs(card_images_dir, exist_ok=True)
-        
-        image_uuid = uuid.uuid4().hex
-        image_filename = f"card_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{image_uuid}.jpg"
-        image_filepath = os.path.join(card_images_dir, image_filename)
-        with open(image_filepath, "wb") as f:
-            f.write(contents)
-            
-        extracted_result.card_image_filename = image_filename
+        # Image saving is disabled to optimize memory and disk usage.
+        extracted_result.card_image_filename = ""
         return extracted_result
 
     except HTTPException:
