@@ -23,17 +23,18 @@ HEADERS = [
 def sanitize_private_key(raw_key: str) -> str:
     """
     Cleans and formats a private key string to prevent PEM/padding errors.
-    Handles surrounding quotes, escaped newlines, base64 decoding, and padding.
+    Safely validates with cryptography's PEM parser without corrupting valid base64 payloads.
     """
     if not raw_key:
         return ""
     
     import base64
+    from cryptography.hazmat.primitives import serialization
 
-    # Strip surrounding whitespace and quotes
+    # 1. Strip surrounding whitespace and quotes
     key = raw_key.strip().strip('"').strip("'")
     
-    # If the key is an entire base64 string without PEM headers, attempt decoding
+    # 2. If the key is an entire base64 string without PEM headers, attempt decoding
     if "-----BEGIN" not in key and len(key) > 50:
         try:
             pad_len = (4 - len(key) % 4) % 4
@@ -44,10 +45,10 @@ def sanitize_private_key(raw_key: str) -> str:
         except Exception:
             pass
 
-    # Unescape escaped newlines
+    # 3. Unescape escaped newlines
     key = key.replace("\\\\n", "\n").replace("\\n", "\n")
     
-    # Locate PEM header and footer
+    # 4. Locate PEM header and footer
     header_idx = key.find("-----BEGIN")
     footer_idx = key.find("-----END")
     
@@ -55,28 +56,31 @@ def sanitize_private_key(raw_key: str) -> str:
         header_end = key.find("-----", header_idx + 5)
         if header_end != -1:
             header = key[header_idx : header_end + 5]
-            
             footer_end = key.find("-----", footer_idx + 5)
             if footer_end != -1:
                 footer = key[footer_idx : footer_end + 5]
-                
-                # Extract and clean base64 content in between header and footer
                 base64_part = key[header_end + 5 : footer_idx]
+                
+                # Standard line wrapping preserving original base64 characters
+                cleaned_base64 = "".join(c for c in base64_part if not c.isspace())
+                lines = [cleaned_base64[i:i+64] for i in range(0, len(cleaned_base64), 64)]
+                formatted_key = f"{header}\n" + "\n".join(lines) + f"\n{footer}\n"
+                
+                # Test if formatted_key is directly valid
+                try:
+                    serialization.load_pem_private_key(formatted_key.encode("utf-8"), password=None)
+                    return formatted_key
+                except Exception:
+                    pass
+                    
+                # Fallback repair only if direct load failed
                 cleaned_base64 = "".join(
                     c for c in base64_part 
                     if c in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
                 )
-                
-                # Strip existing '=' padding then re-pad correctly to a multiple of 4
-                cleaned_base64 = cleaned_base64.rstrip("=")
-                pad_needed = (4 - (len(cleaned_base64) % 4)) % 4
-                if pad_needed > 0:
-                    cleaned_base64 += "=" * pad_needed
-                
-                # Reconstruct key with 64-character line wrapping as per PEM spec
                 lines = [cleaned_base64[i:i+64] for i in range(0, len(cleaned_base64), 64)]
                 return f"{header}\n" + "\n".join(lines) + f"\n{footer}\n"
-                
+
     return key
 
 def load_credentials_from_file(filename: str, scopes: list):
