@@ -23,16 +23,31 @@ HEADERS = [
 def sanitize_private_key(raw_key: str) -> str:
     """
     Cleans and formats a private key string to prevent PEM/padding errors.
-    Handles surrounding quotes, escaped newlines, and base64 formatting.
+    Handles surrounding quotes, escaped newlines, base64 decoding, and padding.
     """
     if not raw_key:
         return ""
     
-    # Strip surrounding spaces and quotes
+    import base64
+
+    # Strip surrounding whitespace and quotes
     key = raw_key.strip().strip('"').strip("'")
+    
+    # If the key is an entire base64 string without PEM headers, attempt decoding
+    if "-----BEGIN" not in key and len(key) > 50:
+        try:
+            pad_len = (4 - len(key) % 4) % 4
+            padded = key + ("=" * pad_len)
+            decoded = base64.b64decode(padded).decode("utf-8", errors="ignore")
+            if "-----BEGIN" in decoded:
+                key = decoded
+        except Exception:
+            pass
+
+    # Unescape escaped newlines
     key = key.replace("\\\\n", "\n").replace("\\n", "\n")
     
-    # Find header and footer dynamically to handle different key types
+    # Locate PEM header and footer
     header_idx = key.find("-----BEGIN")
     footer_idx = key.find("-----END")
     
@@ -45,11 +60,20 @@ def sanitize_private_key(raw_key: str) -> str:
             if footer_end != -1:
                 footer = key[footer_idx : footer_end + 5]
                 
-                # Extract and clean base64 content in between
+                # Extract and clean base64 content in between header and footer
                 base64_part = key[header_end + 5 : footer_idx]
-                cleaned_base64 = "".join(c for c in base64_part if c not in " \t\r\n'\"\\")
+                cleaned_base64 = "".join(
+                    c for c in base64_part 
+                    if c in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
+                )
                 
-                # Reconstruct key with proper line wrapping
+                # Strip existing '=' padding then re-pad correctly to a multiple of 4
+                cleaned_base64 = cleaned_base64.rstrip("=")
+                pad_needed = (4 - (len(cleaned_base64) % 4)) % 4
+                if pad_needed > 0:
+                    cleaned_base64 += "=" * pad_needed
+                
+                # Reconstruct key with 64-character line wrapping as per PEM spec
                 lines = [cleaned_base64[i:i+64] for i in range(0, len(cleaned_base64), 64)]
                 return f"{header}\n" + "\n".join(lines) + f"\n{footer}\n"
                 
@@ -72,6 +96,7 @@ def get_gspread_client():
     Initializes gspread client using service account credentials from env or JSON file.
     """
     import gspread
+    import base64
     from google.oauth2.service_account import Credentials
 
     scopes = [
@@ -79,13 +104,32 @@ def get_gspread_client():
         "https://www.googleapis.com/auth/drive"
     ]
 
-    # Check 1: File path
+    # Check 1: Full JSON string or Base64-encoded JSON string in environment variable
+    sa_json_env = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON") or os.getenv("GOOGLE_CREDENTIALS_JSON")
+    if sa_json_env:
+        try:
+            raw_str = sa_json_env.strip().strip('"').strip("'")
+            if not raw_str.startswith("{"):
+                try:
+                    padded = raw_str + ("=" * ((4 - len(raw_str) % 4) % 4))
+                    raw_str = base64.b64decode(padded).decode("utf-8", errors="ignore")
+                except Exception:
+                    pass
+            info = json.loads(raw_str)
+            if "private_key" in info:
+                info["private_key"] = sanitize_private_key(info["private_key"])
+            creds = Credentials.from_service_account_info(info, scopes=scopes)
+            return gspread.authorize(creds)
+        except Exception as e:
+            logger.warning(f"Failed to load credentials from GOOGLE_SERVICE_ACCOUNT_JSON: {e}")
+
+    # Check 2: File path
     sa_file = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE")
     if sa_file and os.path.exists(sa_file):
         creds = load_credentials_from_file(sa_file, scopes=scopes)
         return gspread.authorize(creds)
 
-    # Check 2: Direct environment variables
+    # Check 3: Direct environment variables (email + private_key)
     email = os.getenv("GOOGLE_SERVICE_ACCOUNT_EMAIL")
     private_key = os.getenv("GOOGLE_PRIVATE_KEY")
     if email and private_key:
@@ -99,7 +143,7 @@ def get_gspread_client():
         creds = Credentials.from_service_account_info(info, scopes=scopes)
         return gspread.authorize(creds)
 
-    # Check 3: credentials.json in local backend directory
+    # Check 4: credentials.json in local backend directory
     default_json = os.path.join(os.path.dirname(__file__), "..", "credentials.json")
     if os.path.exists(default_json):
         creds = load_credentials_from_file(default_json, scopes=scopes)
