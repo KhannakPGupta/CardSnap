@@ -15,7 +15,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install PyTorch (CPU-only version) to dramatically reduce container size and RAM usage
-RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Install the rest of the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
