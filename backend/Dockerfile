@@ -26,8 +26,8 @@ COPY . .
 # Create the data directory for storage (and visual vaults)
 RUN mkdir -p data/card_images
 
-# Expose the API port
-EXPOSE 8000
+# Expose the API port (Cloud Run will override this, but standardizing on 8080 or dynamic is good practice)
+EXPOSE 8080
 
-# Start uvicorn server
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start uvicorn server, using the PORT environment variable if available, defaulting to 8000
+CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
