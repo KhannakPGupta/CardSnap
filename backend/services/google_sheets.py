@@ -290,3 +290,214 @@ def rename_archived_worksheet_in_gs(old_filename: str, new_filename: str) -> Tup
     except Exception as e:
         logger.error(f"Failed to rename worksheet in Google Sheets: {e}")
         return False, f"Google Sheets rename error: {str(e)}"
+
+
+def get_all_contacts_from_sheet() -> list:
+    """Read all contacts from the active Google Sheets worksheet and return as a list of dicts."""
+    contacts = []
+    is_conf, sheet_id, msg = is_google_sheets_configured()
+    if not is_conf or not sheet_id:
+        logger.error(f"Google Sheet not connected: {msg}")
+        return contacts
+
+    try:
+        client = get_gspread_client()
+        sh = client.open_by_key(sheet_id)
+        worksheet = get_active_worksheet(sh)
+        all_values = worksheet.get_all_values()
+        if not all_values or len(all_values) <= 1:
+            return contacts
+
+        for row_idx, row_vals in enumerate(all_values[1:], 2):  # Start from row 2 (1-indexed for sheets)
+            # Pad row_vals with empty strings if less than headers length
+            if len(row_vals) < len(HEADERS):
+                row_vals += [""] * (len(HEADERS) - len(row_vals))
+            
+            # Skip completely empty rows
+            if not any(row_vals):
+                continue
+
+            # Strip leading single quote from phone if present (prevents cell text conversion)
+            phone = str(row_vals[3] or "").strip()
+            if phone.startswith("'"):
+                phone = phone[1:]
+
+            contact_dict = {
+                "id": row_idx,
+                "name": str(row_vals[0] or "").strip(),
+                "job_title": str(row_vals[1] or "").strip(),
+                "company": str(row_vals[2] or "").strip(),
+                "phone": phone,
+                "email": str(row_vals[4] or "").strip(),
+                "website": str(row_vals[5] or "").strip(),
+                "linkedin": str(row_vals[6] or "").strip(),
+                "address": str(row_vals[7] or "").strip(),
+                "notes": str(row_vals[8] or "").strip(),
+                "date_added": str(row_vals[9] or "").strip(),
+                "image_path": ""  # No local image path stored in Cloud Run
+            }
+            contacts.append(contact_dict)
+    except Exception as e:
+        logger.error(f"Error reading Google Sheets contacts: {e}")
+    return contacts
+
+
+def update_contact_in_sheet(row_id: int, contact: ContactModel) -> Tuple[bool, str]:
+    """Update contact row in Google Sheets."""
+    is_conf, sheet_id, msg = is_google_sheets_configured()
+    if not is_conf or not sheet_id:
+        return False, f"Google Sheet not connected: {msg}"
+
+    try:
+        client = get_gspread_client()
+        sh = client.open_by_key(sheet_id)
+        worksheet = get_active_worksheet(sh)
+        
+        all_values = worksheet.get_all_values()
+        if row_id < 2 or row_id > len(all_values):
+            return False, "Invalid contact ID"
+            
+        date_added = all_values[row_id - 1][9] if len(all_values[row_id - 1]) > 9 else datetime.now().strftime("%d/%m/%Y")
+        
+        phone_val = contact.phone or ""
+        if phone_val:
+            phone_val = f"'{phone_val}"
+
+        row_data = [
+            contact.name or "",
+            contact.job_title or "",
+            contact.company or "",
+            phone_val,
+            contact.email or "",
+            contact.website or "",
+            contact.linkedin or "",
+            contact.address or "",
+            contact.notes or "",
+            date_added
+        ]
+        
+        cell_list = worksheet.range(row_id, 1, row_id, len(HEADERS))
+        for col_idx, val in enumerate(row_data):
+            cell_list[col_idx].value = val
+        worksheet.update_cells(cell_list, value_input_option="USER_ENTERED")
+        
+        return True, "Contact updated successfully in Google Sheet"
+    except Exception as e:
+        logger.error(f"Failed to update contact in Google Sheets: {e}")
+        return False, f"Google Sheets update error: {str(e)}"
+
+
+def delete_contact_from_sheet(row_id: int) -> Tuple[bool, str]:
+    """Delete a contact row from Google Sheets."""
+    is_conf, sheet_id, msg = is_google_sheets_configured()
+    if not is_conf or not sheet_id:
+        return False, f"Google Sheet not connected: {msg}"
+
+    try:
+        client = get_gspread_client()
+        sh = client.open_by_key(sheet_id)
+        worksheet = get_active_worksheet(sh)
+        
+        all_values = worksheet.get_all_values()
+        if row_id < 2 or row_id > len(all_values):
+            return False, "Invalid contact ID"
+            
+        worksheet.delete_rows(row_id)
+        return True, "Contact deleted successfully from Google Sheet"
+    except Exception as e:
+        logger.error(f"Failed to delete contact in Google Sheets: {e}")
+        return False, f"Google Sheets delete error: {str(e)}"
+
+
+def merge_contacts_in_sheet(target_row_id: int, duplicate_row_ids: list, merged_contact: ContactModel) -> Tuple[bool, str]:
+    """Merges a group of contact rows by updating the target row and deleting the duplicates in Google Sheets."""
+    is_conf, sheet_id, msg = is_google_sheets_configured()
+    if not is_conf or not sheet_id:
+        return False, f"Google Sheet not connected: {msg}"
+
+    try:
+        client = get_gspread_client()
+        sh = client.open_by_key(sheet_id)
+        worksheet = get_active_worksheet(sh)
+        
+        all_values = worksheet.get_all_values()
+        
+        # 1. Update target row
+        date_added = all_values[target_row_id - 1][9] if len(all_values[target_row_id - 1]) > 9 else datetime.now().strftime("%d/%m/%Y")
+        
+        phone_val = merged_contact.phone or ""
+        if phone_val:
+            phone_val = f"'{phone_val}"
+
+        row_data = [
+            merged_contact.name or "",
+            merged_contact.job_title or "",
+            merged_contact.company or "",
+            phone_val,
+            merged_contact.email or "",
+            merged_contact.website or "",
+            merged_contact.linkedin or "",
+            merged_contact.address or "",
+            merged_contact.notes or "",
+            date_added
+        ]
+        
+        cell_list = worksheet.range(target_row_id, 1, target_row_id, len(HEADERS))
+        for col_idx, val in enumerate(row_data):
+            cell_list[col_idx].value = val
+        worksheet.update_cells(cell_list, value_input_option="USER_ENTERED")
+        
+        # 2. Delete duplicate rows in descending order to avoid ID shifting
+        sorted_duplicates = sorted([int(r) for r in duplicate_row_ids if int(r) != target_row_id], reverse=True)
+        for row_id in sorted_duplicates:
+            if row_id >= 2 and row_id <= len(all_values):
+                worksheet.delete_rows(row_id)
+                
+        return True, "Contacts successfully merged in Google Sheet"
+    except Exception as e:
+        logger.error(f"Failed to merge contacts in Google Sheets: {e}")
+        return False, f"Google Sheets merge error: {str(e)}"
+
+
+def get_all_ledgers_from_sheets() -> list:
+    """Lists all worksheets (ledgers) in the Google Spreadsheet with metadata."""
+    is_conf, sheet_id, msg = is_google_sheets_configured()
+    if not is_conf or not sheet_id:
+        return []
+
+    ledgers = []
+    try:
+        client = get_gspread_client()
+        sh = client.open_by_key(sheet_id)
+        worksheets = sh.worksheets()
+        
+        for w in worksheets:
+            is_active = (w.title == "Active Contacts")
+            all_vals = w.get_all_values()
+            contact_count = 0
+            if all_vals:
+                if all_vals[0] == HEADERS or "Name" in all_vals[0]:
+                    contact_count = max(0, len(all_vals) - 1)
+                else:
+                    contact_count = len(all_vals)
+                    
+            size_est = len(all_vals) * 150 if all_vals else 0
+            
+            if is_active:
+                filename = "CardSnap_Contacts.xlsx"
+            else:
+                filename = f"CardSnap_{w.title}.xlsx"
+                
+            ledgers.append({
+                "filename": filename,
+                "size_bytes": size_est,
+                "modified_time": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+                "is_active": is_active,
+                "contact_count": contact_count
+            })
+            
+        ledgers.sort(key=lambda x: (not x["is_active"], x["filename"]), reverse=True)
+    except Exception as e:
+        logger.error(f"Error listing Google Sheet tabs: {e}")
+    return ledgers
+

@@ -1,6 +1,12 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, status
-from fastapi.responses import FileResponse
+from fastapi.responses import Response, StreamingResponse
+import io
 import os
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.utils import get_column_letter
+from datetime import datetime
+
 from models.contact import (
     ContactModel,
     ContactScanResult,
@@ -20,78 +26,61 @@ from services.google_sheets import (
     archive_active_worksheet_in_gs,
     activate_archived_worksheet_in_gs,
     delete_archived_worksheet_in_gs,
-    rename_archived_worksheet_in_gs
+    rename_archived_worksheet_in_gs,
+    get_all_contacts_from_sheet,
+    update_contact_in_sheet,
+    delete_contact_from_sheet,
+    merge_contacts_in_sheet,
+    get_all_ledgers_from_sheets,
+    filename_to_tab_name,
+    HEADERS
 )
-from services.excel_storage import (
-    append_contact_to_excel,
-    get_local_excel_contact_count,
-    ensure_excel_file_exists,
-    get_all_contacts_from_excel,
-    update_contact_in_excel,
-    delete_contact_from_excel,
-    generate_vcard_string,
-    create_new_excel_sheet,
-    get_all_ledgers,
-    activate_ledger_file,
-    delete_ledger_file,
-    rename_ledger_file,
-    merge_contacts_in_excel,
-    DATA_DIR,
-    EXCEL_PATH
-)
-from fastapi.responses import Response
+from services.excel_storage import generate_vcard_string
+
+import logging
+logger = logging.getLogger("cardsnap.routes")
 
 router = APIRouter()
 
 @router.get("/contacts")
-
 def list_contacts():
-    contacts = get_all_contacts_from_excel()
+    contacts = get_all_contacts_from_sheet()
     return {"contacts": contacts, "total": len(contacts)}
 
 @router.put("/contacts/{row_id}")
 def update_contact(row_id: int, contact: ContactModel):
-    success, msg = update_contact_in_excel(row_id, contact)
+    success, msg = update_contact_in_sheet(row_id, contact)
     if not success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
     return {"success": True, "message": msg}
 
 @router.delete("/contacts/{row_id}")
 def delete_contact(row_id: int):
-    success, msg = delete_contact_from_excel(row_id)
+    success, msg = delete_contact_from_sheet(row_id)
     if not success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
     return {"success": True, "message": msg}
 
 @router.post("/contacts/reset")
 def reset_contacts_sheet():
-    success, msg, archive_filename = create_new_excel_sheet()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    archive_filename = f"CardSnap_Contacts_{timestamp}.xlsx"
+    
+    success, msg = archive_active_worksheet_in_gs(archive_filename)
     if not success:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=msg)
-    
-    # Sync with Google Sheets if configured
-    is_configured, _, _ = is_google_sheets_configured()
-    if is_configured and archive_filename:
-        gs_success, gs_msg = archive_active_worksheet_in_gs(archive_filename)
-        if not gs_success:
-            logger.warning(f"Google Sheets archive sync failed: {gs_msg}")
-            return {"success": True, "message": f"{msg} (Google Sheets sync error: {gs_msg})"}
-            
+        
     return {"success": True, "message": msg}
 
 @router.get("/download-vcard")
 def download_vcard():
-    contacts = get_all_contacts_from_excel()
+    contacts = get_all_contacts_from_sheet()
     vcard_str = generate_vcard_string(contacts)
     return Response(
         content=vcard_str,
         media_type="text/vcard",
         headers={"Content-Disposition": "attachment; filename=CardSnap_Contacts.vcf"}
     )
-
-import logging
-
-logger = logging.getLogger("cardsnap.routes")
 
 @router.get("/health")
 def health_check():
@@ -101,72 +90,125 @@ def health_check():
 def get_config_status():
     is_configured, sheet_id, message = is_google_sheets_configured()
     count = get_contact_count() if is_configured else None
-    local_count = get_local_excel_contact_count()
     return ConfigStatusResponse(
         google_sheets_configured=is_configured,
         spreadsheet_id=sheet_id if is_configured else None,
         contact_count=count,
-        local_excel_count=local_count,
+        local_excel_count=count,  # Google Sheets is the source of truth
         message=message
     )
 
 @router.get("/download-excel")
 def download_excel():
-    filepath = ensure_excel_file_exists()
-    return FileResponse(
-        path=filepath,
-        filename="CardSnap_Contacts.xlsx",
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    contacts = get_all_contacts_from_sheet()
+    
+    # Create workbook in memory
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Contacts"
+    
+    ws.append(HEADERS)
+    
+    header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    header_font = Font(name="Segoe UI", size=11, bold=True, color="FFFFFF")
+    center_align = Alignment(horizontal="center", vertical="center")
+    
+    for col_num, header in enumerate(HEADERS, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = center_align
+        ws.column_dimensions[get_column_letter(col_num)].width = max(len(header) + 6, 18)
+        
+    for c in contacts:
+        ws.append([
+            c.get("name") or "",
+            c.get("job_title") or "",
+            c.get("company") or "",
+            c.get("phone") or "",
+            c.get("email") or "",
+            c.get("website") or "",
+            c.get("linkedin") or "",
+            c.get("address") or "",
+            c.get("notes") or "",
+            c.get("date_added") or ""
+        ])
+        
+    file_stream = io.BytesIO()
+    wb.save(file_stream)
+    file_stream.seek(0)
+    
+    return StreamingResponse(
+        file_stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=CardSnap_Contacts.xlsx"}
     )
 
 @router.get("/ledgers")
 def list_ledgers():
-    return {"ledgers": get_all_ledgers()}
+    return {"ledgers": get_all_ledgers_from_sheets()}
 
 @router.post("/ledgers/activate/{filename}")
 def activate_ledger(filename: str):
-    success, msg, backup_filename = activate_ledger_file(filename)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_filename = f"CardSnap_Contacts_{timestamp}.xlsx"
+    
+    success, msg = activate_archived_worksheet_in_gs(filename, backup_filename)
     if not success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
-        
-    # Sync with Google Sheets if configured
-    is_configured, _, _ = is_google_sheets_configured()
-    if is_configured and backup_filename:
-        gs_success, gs_msg = activate_archived_worksheet_in_gs(filename, backup_filename)
-        if not gs_success:
-            logger.warning(f"Google Sheets activation sync failed: {gs_msg}")
-            return {"success": True, "message": f"{msg} (Google Sheets sync error: {gs_msg})"}
             
     return {"success": True, "message": msg}
 
 @router.delete("/ledgers/{filename}")
 def delete_ledger(filename: str):
-    success, msg = delete_ledger_file(filename)
+    success, msg = delete_archived_worksheet_in_gs(filename)
     if not success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
-        
-    # Sync with Google Sheets if configured
-    is_configured, _, _ = is_google_sheets_configured()
-    if is_configured:
-        gs_success, gs_msg = delete_archived_worksheet_in_gs(filename)
-        if not gs_success:
-            logger.warning(f"Google Sheets delete sync failed: {gs_msg}")
-            return {"success": True, "message": f"{msg} (Google Sheets sync error: {gs_msg})"}
             
     return {"success": True, "message": msg}
 
 @router.get("/download-excel/{filename}")
 def download_specific_excel(filename: str):
-    filepath = os.path.join(DATA_DIR, filename)
-    if not os.path.abspath(filepath).startswith(os.path.abspath(DATA_DIR)):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+    tab_name = filename_to_tab_name(filename)
+    
+    is_conf, sheet_id, msg = is_google_sheets_configured()
+    if not is_conf or not sheet_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google Sheet not configured")
         
-    return FileResponse(
-        path=filepath,
-        filename=filename,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    try:
+        client = get_gspread_client()
+        sh = client.open_by_key(sheet_id)
+        wks = sh.worksheet(tab_name)
+        all_vals = wks.get_all_values()
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Ledger tab '{tab_name}' not found: {str(e)}")
+        
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Contacts"
+    
+    for row in all_vals:
+        ws.append(row)
+        
+    if all_vals:
+        header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+        header_font = Font(name="Segoe UI", size=11, bold=True, color="FFFFFF")
+        center_align = Alignment(horizontal="center", vertical="center")
+        for col_num in range(1, len(all_vals[0]) + 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center_align
+            ws.column_dimensions[get_column_letter(col_num)].width = 18
+              
+    file_stream = io.BytesIO()
+    wb.save(file_stream)
+    file_stream.seek(0)
+    
+    return StreamingResponse(
+        file_stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
 @router.post("/scan", response_model=ContactScanResult)
@@ -181,7 +223,6 @@ async def scan_business_card(file: UploadFile = File(...)):
         # OCR execution
         ocr_results = run_ocr(processed_img)
         if not ocr_results:
-            # Fallback to original image if processed image produced no text
             ocr_results = run_ocr(original_img)
             
         if not ocr_results:
@@ -190,10 +231,7 @@ async def scan_business_card(file: UploadFile = File(...)):
                 detail="We couldn't read this card clearly. Try taking a sharper, better-lit photo."
             )
             
-        # Structure extraction
         extracted_result = extract_contact_info(ocr_results)
-        
-        # Image saving is disabled to optimize memory and disk usage.
         extracted_result.card_image_filename = ""
         return extracted_result
 
@@ -208,52 +246,27 @@ async def scan_business_card(file: UploadFile = File(...)):
 
 @router.post("/save-contact", response_model=SaveContactResponse)
 def save_contact(contact: ContactModel):
-    # Always append to local Excel sheet
-    excel_success, excel_msg, excel_row = append_contact_to_excel(contact)
-
-    # If Google Sheets is configured, also append to Google Sheet
-    is_configured, _, _ = is_google_sheets_configured()
-    if is_configured:
-        gs_success, gs_msg, gs_row = append_contact_to_sheet(contact)
-        if not gs_success:
-            logger.warning(f"Google Sheets save failed: {gs_msg}. Local Excel saved successfully.")
-            return SaveContactResponse(
-                success=True,
-                message=f"Saved to local Excel sheet. (Google Sheets error: {gs_msg})",
-                row_added=excel_row
-            )
-        return SaveContactResponse(
-            success=True,
-            message="Saved to Google Sheet and local Excel file.",
-            row_added=gs_row
-        )
-
-    # Local Excel only mode
-    if not excel_success:
+    gs_success, gs_msg, gs_row = append_contact_to_sheet(contact)
+    if not gs_success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=excel_msg
+            detail=gs_msg
         )
     return SaveContactResponse(
         success=True,
-        message="Saved to local Excel sheet.",
-        row_added=excel_row
+        message="Saved to Google Sheet successfully.",
+        row_added=gs_row
     )
 
 @router.get("/card-image/{filename}")
 def get_card_image(filename: str):
-    image_path = os.path.join(DATA_DIR, "card_images", filename)
-    if not os.path.abspath(image_path).startswith(os.path.abspath(os.path.join(DATA_DIR, "card_images"))):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-    if not os.path.exists(image_path):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
-    return FileResponse(image_path)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image storage disabled in cloud environment.")
 
 @router.get("/contacts/duplicates")
 def get_duplicate_contacts():
     import re
     import difflib
-    contacts = get_all_contacts_from_excel()
+    contacts = get_all_contacts_from_sheet()
     if not contacts:
         return {"duplicates": []}
         
@@ -272,7 +285,6 @@ def get_duplicate_contacts():
         if root_i != root_j:
             parent[root_i] = root_j
             
-    # Check matching criteria pairwise
     for i in range(n):
         c1 = contacts[i]
         email1 = c1.get("email", "").strip().lower()
@@ -287,15 +299,10 @@ def get_duplicate_contacts():
             
             is_match = False
             
-            # 1. Exact email match
             if email1 and email2 and email1 == email2:
                 is_match = True
-            
-            # 2. Exact phone match (minimum 7 digits)
             elif phone1 and phone2 and len(phone1) >= 7 and phone1 == phone2:
                 is_match = True
-                
-            # 3. Fuzzy name match (minimum 3 characters, ratio >= 0.85)
             elif name1 and name2 and len(name1) > 2 and len(name2) > 2:
                 if name1 == name2:
                     is_match = True
@@ -307,17 +314,14 @@ def get_duplicate_contacts():
             if is_match:
                 union(i, j)
                 
-    # Group contacts by their root parent
     clusters = {}
     for i in range(n):
         root = find(i)
         clusters.setdefault(root, []).append(contacts[i])
         
-    # Filter clusters with size > 1
     duplicate_groups = []
     for root, group in clusters.items():
         if len(group) > 1:
-            # Determine primary match type/value for visual feedback
             email1 = group[0].get("email", "").strip().lower()
             phone1 = re.sub(r'\D', '', group[0].get("phone", ""))
             name1 = group[0].get("name", "").strip().lower()
@@ -325,7 +329,6 @@ def get_duplicate_contacts():
             m_type = "Name"
             m_val = group[0].get("name")
             
-            # Inspect pair links to display descriptive reason
             for k in range(1, len(group)):
                 email2 = group[k].get("email", "").strip().lower()
                 phone2 = re.sub(r'\D', '', group[k].get("phone", ""))
@@ -355,7 +358,7 @@ def get_duplicate_contacts():
 
 @router.post("/contacts/merge")
 def merge_contacts(req: MergeContactsRequest):
-    success, msg = merge_contacts_in_excel(
+    success, msg = merge_contacts_in_sheet(
         target_row_id=req.target_row_id,
         duplicate_row_ids=req.duplicate_row_ids,
         merged_contact=req.merged_contact
@@ -366,17 +369,14 @@ def merge_contacts(req: MergeContactsRequest):
 
 @router.post("/ledgers/rename")
 def rename_ledger(req: RenameLedgerRequest):
-    success, msg, new_filename = rename_ledger_file(req.filename, req.new_label)
+    clean_label = "".join(c for c in req.new_label if c.isalnum() or c in ("_", "-")).strip()
+    if not clean_label:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid label name.")
+    new_filename = f"CardSnap_Contacts_{clean_label}.xlsx"
+    
+    success, msg = rename_archived_worksheet_in_gs(req.filename, new_filename)
     if not success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
-        
-    # Sync with Google Sheets if configured
-    is_configured, _, _ = is_google_sheets_configured()
-    if is_configured and new_filename:
-        gs_success, gs_msg = rename_archived_worksheet_in_gs(req.filename, new_filename)
-        if not gs_success:
-            logger.warning(f"Google Sheets rename sync failed: {gs_msg}")
-            return {"success": True, "message": f"{msg} (Google Sheets sync error: {gs_msg})"}
-            
     return {"success": True, "message": msg}
+
 
