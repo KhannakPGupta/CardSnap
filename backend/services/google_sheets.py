@@ -20,6 +20,53 @@ HEADERS = [
     "Date Added"
 ]
 
+def sanitize_private_key(raw_key: str) -> str:
+    """
+    Cleans and formats a private key string to prevent PEM/padding errors.
+    Handles surrounding quotes, escaped newlines, and base64 formatting.
+    """
+    if not raw_key:
+        return ""
+    
+    # Strip surrounding spaces and quotes
+    key = raw_key.strip().strip('"').strip("'")
+    key = key.replace("\\\\n", "\n").replace("\\n", "\n")
+    
+    # Find header and footer dynamically to handle different key types
+    header_idx = key.find("-----BEGIN")
+    footer_idx = key.find("-----END")
+    
+    if header_idx != -1 and footer_idx != -1:
+        header_end = key.find("-----", header_idx + 5)
+        if header_end != -1:
+            header = key[header_idx : header_end + 5]
+            
+            footer_end = key.find("-----", footer_idx + 5)
+            if footer_end != -1:
+                footer = key[footer_idx : footer_end + 5]
+                
+                # Extract and clean base64 content in between
+                base64_part = key[header_end + 5 : footer_idx]
+                cleaned_base64 = "".join(c for c in base64_part if c not in " \t\r\n'\"\\")
+                
+                # Reconstruct key with proper line wrapping
+                lines = [cleaned_base64[i:i+64] for i in range(0, len(cleaned_base64), 64)]
+                return f"{header}\n" + "\n".join(lines) + f"\n{footer}\n"
+                
+    return key
+
+def load_credentials_from_file(filename: str, scopes: list):
+    """
+    Loads Google service account credentials from a JSON file,
+    ensuring the private key is properly sanitized.
+    """
+    from google.oauth2.service_account import Credentials
+    with open(filename, "r", encoding="utf-8") as f:
+        info = json.load(f)
+    if "private_key" in info:
+        info["private_key"] = sanitize_private_key(info["private_key"])
+    return Credentials.from_service_account_info(info, scopes=scopes)
+
 def get_gspread_client():
     """
     Initializes gspread client using service account credentials from env or JSON file.
@@ -35,14 +82,14 @@ def get_gspread_client():
     # Check 1: File path
     sa_file = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE")
     if sa_file and os.path.exists(sa_file):
-        return gspread.service_account(filename=sa_file, scopes=scopes)
+        creds = load_credentials_from_file(sa_file, scopes=scopes)
+        return gspread.authorize(creds)
 
     # Check 2: Direct environment variables
     email = os.getenv("GOOGLE_SERVICE_ACCOUNT_EMAIL")
     private_key = os.getenv("GOOGLE_PRIVATE_KEY")
     if email and private_key:
-        # Handle line breaks in private key if passed as single string
-        private_key = private_key.replace("\\n", "\n")
+        private_key = sanitize_private_key(private_key)
         info = {
             "type": "service_account",
             "client_email": email,
@@ -55,7 +102,8 @@ def get_gspread_client():
     # Check 3: credentials.json in local backend directory
     default_json = os.path.join(os.path.dirname(__file__), "..", "credentials.json")
     if os.path.exists(default_json):
-        return gspread.service_account(filename=default_json, scopes=scopes)
+        creds = load_credentials_from_file(default_json, scopes=scopes)
+        return gspread.authorize(creds)
 
     raise ValueError("Google Service Account credentials not configured.")
 
