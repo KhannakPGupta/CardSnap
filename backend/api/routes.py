@@ -88,15 +88,25 @@ def health_check():
 
 @router.get("/config/status", response_model=ConfigStatusResponse)
 def get_config_status():
-    is_configured, sheet_id, message = is_google_sheets_configured()
-    count = get_contact_count() if is_configured else None
-    return ConfigStatusResponse(
-        google_sheets_configured=is_configured,
-        spreadsheet_id=sheet_id if is_configured else None,
-        contact_count=count,
-        local_excel_count=count,  # Google Sheets is the source of truth
-        message=message
-    )
+    try:
+        is_configured, sheet_id, message = is_google_sheets_configured()
+        count = get_contact_count() if is_configured else None
+        return ConfigStatusResponse(
+            google_sheets_configured=is_configured,
+            spreadsheet_id=sheet_id if is_configured else None,
+            contact_count=count,
+            local_excel_count=count,
+            message=message or ""
+        )
+    except Exception as e:
+        logger.error(f"Error in get_config_status: {e}", exc_info=True)
+        return ConfigStatusResponse(
+            google_sheets_configured=False,
+            spreadsheet_id=None,
+            contact_count=None,
+            local_excel_count=None,
+            message=f"Configuration status check error: {str(e)}"
+        )
 
 @router.get("/download-excel")
 def download_excel():

@@ -34,7 +34,7 @@ class ConfigStatusResponse(BaseModel):
     google_sheets_configured: bool
     spreadsheet_id: Optional[str] = None
     contact_count: Optional[int] = None
-    local_excel_count: int = 0
+    local_excel_count: Optional[int] = 0
     message: str = ""
 
 class SaveContactResponse(BaseModel):

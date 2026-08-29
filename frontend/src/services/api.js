@@ -1,5 +1,17 @@
-export const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-const API_BASE = `${BACKEND_URL}/api`;
+const getBackendUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  // If running locally in browser (localhost / 127.0.0.1), default to local backend port 8000
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:8000';
+  }
+  // In production (Vercel or hosted), relative path '' uses vercel.json rewrites
+  return '';
+};
+
+export const BACKEND_URL = getBackendUrl();
+const API_BASE = BACKEND_URL ? `${BACKEND_URL}/api` : '/api';
 
 export async function fetchConfigStatus() {
   try {
