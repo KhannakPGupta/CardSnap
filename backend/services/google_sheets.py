@@ -107,6 +107,7 @@ def get_gspread_client():
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
     ]
+    credential_errors = []
 
     # Check 1: Full JSON string or Base64-encoded JSON string in environment variable
     sa_json_env = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON") or os.getenv("GOOGLE_CREDENTIALS_JSON")
@@ -125,34 +126,52 @@ def get_gspread_client():
             creds = Credentials.from_service_account_info(info, scopes=scopes)
             return gspread.authorize(creds)
         except Exception as e:
-            logger.warning(f"Failed to load credentials from GOOGLE_SERVICE_ACCOUNT_JSON: {e}")
+            credential_errors.append(f"JSON environment variable: {e}")
+            logger.warning("Failed to load credentials from JSON environment variable: %s", e)
 
     # Check 2: File path
     sa_file = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE")
-    if sa_file and os.path.exists(sa_file):
-        creds = load_credentials_from_file(sa_file, scopes=scopes)
-        return gspread.authorize(creds)
+    if sa_file:
+        if not os.path.isabs(sa_file):
+            sa_file = os.path.join(os.path.dirname(__file__), "..", sa_file)
+        if os.path.exists(sa_file):
+            try:
+                creds = load_credentials_from_file(sa_file, scopes=scopes)
+                return gspread.authorize(creds)
+            except Exception as e:
+                credential_errors.append(f"file '{sa_file}': {e}")
+                logger.warning("Failed to load credentials from file '%s': %s", sa_file, e)
 
     # Check 3: Direct environment variables (email + private_key)
     email = os.getenv("GOOGLE_SERVICE_ACCOUNT_EMAIL")
     private_key = os.getenv("GOOGLE_PRIVATE_KEY")
     if email and private_key:
-        private_key = sanitize_private_key(private_key)
-        info = {
-            "type": "service_account",
-            "client_email": email,
-            "private_key": private_key,
-            "token_uri": "https://oauth2.googleapis.com/token"
-        }
-        creds = Credentials.from_service_account_info(info, scopes=scopes)
-        return gspread.authorize(creds)
+        try:
+            private_key = sanitize_private_key(private_key)
+            info = {
+                "type": "service_account",
+                "client_email": email,
+                "private_key": private_key,
+                "token_uri": "https://oauth2.googleapis.com/token"
+            }
+            creds = Credentials.from_service_account_info(info, scopes=scopes)
+            return gspread.authorize(creds)
+        except Exception as e:
+            credential_errors.append(f"direct environment variables: {e}")
+            logger.warning("Failed to load credentials from direct environment variables: %s", e)
 
     # Check 4: credentials.json in local backend directory
     default_json = os.path.join(os.path.dirname(__file__), "..", "credentials.json")
     if os.path.exists(default_json):
-        creds = load_credentials_from_file(default_json, scopes=scopes)
-        return gspread.authorize(creds)
+        try:
+            creds = load_credentials_from_file(default_json, scopes=scopes)
+            return gspread.authorize(creds)
+        except Exception as e:
+            credential_errors.append(f"default file '{default_json}': {e}")
+            logger.warning("Failed to load credentials from default file '%s': %s", default_json, e)
 
+    if credential_errors:
+        raise ValueError("Google Service Account credentials could not be loaded: " + " | ".join(credential_errors))
     raise ValueError("Google Service Account credentials not configured.")
 
 def is_google_sheets_configured() -> Tuple[bool, Optional[str], Optional[str]]:

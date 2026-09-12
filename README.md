@@ -108,6 +108,29 @@ npm run dev
 ```
 Now navigate to **`http://localhost:5173`** in your browser.
 
+### Google Cloud Run Credentials
+
+Do not copy a service-account key into the Docker image or commit it to the repository. Store the complete downloaded service-account JSON in Google Secret Manager, mount the secret in Cloud Run at `/secrets/google/credentials.json`, and set these Cloud Run environment variables:
+
+```text
+GOOGLE_SERVICE_ACCOUNT_FILE=/secrets/google/credentials.json
+GOOGLE_SHEET_ID=your_google_sheet_id
+```
+
+Example deployment commands:
+
+```bash
+gcloud secrets create cardsnap-google-credentials --data-file=backend/credentials.json
+gcloud secrets add-iam-policy-binding cardsnap-google-credentials \
+    --member="serviceAccount:CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT" \
+    --role="roles/secretmanager.secretAccessor"
+gcloud run services update SERVICE_NAME --region=asia-south2 \
+    --update-secrets=/secrets/google/credentials.json=cardsnap-google-credentials:latest \
+    --set-env-vars=GOOGLE_SERVICE_ACCOUNT_FILE=/secrets/google/credentials.json,GOOGLE_SHEET_ID=your_google_sheet_id
+```
+
+Remove any `GOOGLE_SERVICE_ACCOUNT_JSON`, `GOOGLE_CREDENTIALS_JSON`, or `GOOGLE_PRIVATE_KEY` variables from Cloud Run when using the mounted file. The Google Sheet must be shared with the service account email.
+
 ---
 
 ## 📝 Active Ledger Format (Example Sheet)

@@ -230,10 +230,9 @@ async def scan_business_card(file: UploadFile = File(...)):
         # Image processing
         processed_img, original_img = process_image(contents)
         
-        # OCR execution
-        ocr_results = run_ocr(processed_img)
+        ocr_results = run_ocr(original_img)
         if not ocr_results:
-            ocr_results = run_ocr(original_img)
+            ocr_results = run_ocr(processed_img)
             
         if not ocr_results:
             raise HTTPException(
